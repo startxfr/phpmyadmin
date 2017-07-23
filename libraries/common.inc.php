@@ -226,6 +226,9 @@ date_default_timezone_set(@date_default_timezone_get());
  * in the previous iteration
  */
 $GLOBALS['PMA_Config'] = new Config(CONFIG_FILE);
+if(!$GLOBALS['PMA_Config']->checkConfigSource()) {
+    $GLOBALS['PMA_Config'] = new Config(CONFIG_DIR . 'conf/config.inc.php');
+}
 
 /**
  * BC - enable backward compatibility
