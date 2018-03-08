@@ -2,11 +2,11 @@
     <fieldset>
         <legend>
         {% if Util_showIcons('ActionLinksMode') -%}
-            {{ Util_getImage('b_table_add.png') }}
+            {{ Util_getImage('b_table_add') }}
         {%- endif %}
         {% trans "Create table" %}
         </legend>
-        {{ URL_getHiddenInputs(db) }}
+        {{ Url_getHiddenInputs(db) }}
         <div class="formelement">
             {% trans "Name" %}:
             <input type="text" name="table" maxlength="64" size="30" required="required" />

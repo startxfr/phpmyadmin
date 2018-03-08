@@ -7,7 +7,6 @@
  */
 namespace PhpMyAdmin;
 
-use PhpMyAdmin\Config\ConfigFile;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\Message;
 use PhpMyAdmin\Util;
@@ -79,6 +78,11 @@ class File
     var $_charset = null;
 
     /**
+     * @var ZipExtension
+     */
+    private $zipExtension;
+
+    /**
      * constructor
      *
      * @param boolean|string $name file name or false
@@ -89,6 +93,10 @@ class File
     {
         if ($name && is_string($name)) {
             $this->setName($name);
+        }
+
+        if (extension_loaded('zip')) {
+            $this->zipExtension = new ZipExtension();
         }
     }
 
@@ -344,7 +352,7 @@ class File
      * @static
      */
     public function fetchUploadedFromTblChangeRequestMultiple(
-        $file, $rownumber, $key
+        array $file, $rownumber, $key
     ) {
         $new_file = array(
             'name' => $file['name']['multi_edit'][$rownumber][$key],
@@ -375,9 +383,9 @@ class File
             return $this->setLocalSelectedFile(
                 $_REQUEST['fields_uploadlocal']['multi_edit'][$rownumber][$key]
             );
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -547,18 +555,6 @@ class File
             return false;
         }
 
-        /**
-         * @todo
-         * get registered plugins for file compression
-
-        foreach (PMA_getPlugins($type = 'compression') as $plugin) {
-            if ($plugin['classname']::canHandle($this->getName())) {
-                $this->setCompressionPlugin($plugin);
-                break;
-            }
-        }
-         */
-
         $this->_compression = Util::getCompressionMimeType($file);
         return $this->_compression;
     }
@@ -633,7 +629,7 @@ class File
         case false:
             return false;
         case 'application/bzip2':
-            if ($GLOBALS['cfg']['BZipDump'] && @function_exists('bzopen')) {
+            if ($GLOBALS['cfg']['BZipDump'] && function_exists('bzopen')) {
                 $this->_handle = @bzopen($this->getName(), 'r');
             } else {
                 $this->errorUnsupported();
@@ -641,7 +637,7 @@ class File
             }
             break;
         case 'application/gzip':
-            if ($GLOBALS['cfg']['GZipDump'] && @function_exists('gzopen')) {
+            if ($GLOBALS['cfg']['GZipDump'] && function_exists('gzopen')) {
                 $this->_handle = @gzopen($this->getName(), 'r');
             } else {
                 $this->errorUnsupported();
@@ -649,12 +645,12 @@ class File
             }
             break;
         case 'application/zip':
-            if ($GLOBALS['cfg']['ZipDump'] && @function_exists('zip_open')) {
+            if ($GLOBALS['cfg']['ZipDump'] && function_exists('zip_open')) {
                 return $this->openZip();
-            } else {
-                $this->errorUnsupported();
-                return false;
             }
+
+            $this->errorUnsupported();
+            return false;
         case 'none':
             $this->_handle = @fopen($this->getName(), 'r');
             break;
@@ -675,7 +671,7 @@ class File
      */
     public function openZip($specific_entry = null)
     {
-        $result = ZipExtension::getContents($this->getName(), $specific_entry);
+        $result = $this->zipExtension->getContents($this->getName(), $specific_entry);
         if (! empty($result['error'])) {
             $this->_error_message = Message::rawError($result['error']);
             return false;

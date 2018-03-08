@@ -8,6 +8,7 @@
 namespace PhpMyAdmin\Navigation;
 
 use PhpMyAdmin\Sanitize;
+use PhpMyAdmin\Server\Select;
 use PhpMyAdmin\Template;
 use PhpMyAdmin\Url;
 use PhpMyAdmin\Util;
@@ -56,7 +57,7 @@ class NavigationHeader
         $buffer .= $this->_links();
         $buffer .= $this->_serverChoice();
         $buffer .= Util::getImage(
-            'ajax_clock_small.gif',
+            'ajax_clock_small',
             __('Loading…'),
             array(
                 'style' => 'visibility: hidden; display:none',
@@ -77,30 +78,35 @@ class NavigationHeader
      */
     private function _logo()
     {
-        // display Logo, depending on $GLOBALS['cfg']['NavigationDisplayLogo']
-        if (!$GLOBALS['cfg']['NavigationDisplayLogo']) {
-            return Template::get('navigation/logo')
-                ->render(array('displayLogo' => false));
+        $logo = 'phpMyAdmin';
+        if (isset($GLOBALS['pmaThemeImage'])) {
+            $imgTag = '<img src="%s%s" ' . 'alt="' . $logo . '" id="imgpmalogo" />';
+            if (@file_exists($GLOBALS['pmaThemeImage'] . 'logo_left.png')) {
+                $logo = sprintf($imgTag, $GLOBALS['pmaThemeImage'], 'logo_left.png');
+            } elseif (@file_exists($GLOBALS['pmaThemeImage'] . 'pma_logo2.png')) {
+                $logo = sprintf($imgTag, $GLOBALS['pmaThemeImage'], 'pma_logo2.png');
+            }
         }
 
-        $logo = 'phpMyAdmin';
-        if (@file_exists($GLOBALS['pmaThemeImage'] . 'logo_left.png')) {
-            $logo = '<img src="' . $GLOBALS['pmaThemeImage'] . 'logo_left.png" '
-                . 'alt="' . $logo . '" id="imgpmalogo" />';
-        } elseif (@file_exists($GLOBALS['pmaThemeImage'] . 'pma_logo2.png')) {
-            $logo = '<img src="' . $GLOBALS['pmaThemeImage'] . 'pma_logo2.png" '
-                . 'alt="' . $logo . '" id="imgpmalogo" />';
+        // display Logo, depending on $GLOBALS['cfg']['NavigationDisplayLogo']
+        if (!$GLOBALS['cfg']['NavigationDisplayLogo']) {
+            return Template::get('navigation/logo')->render([
+                'display_logo' => false,
+                'use_logo_link' => false,
+                'logo_link' => null,
+                'link_attribs' => null,
+                'logo' => $logo,
+            ]);
         }
 
         if (!$GLOBALS['cfg']['NavigationLogoLink']) {
-            return Template::get('navigation/logo')
-                ->render(
-                    array(
-                        'displayLogo' => true,
-                        'useLogoLink' => false,
-                        'logo'        => $logo,
-                    )
-                );
+            return Template::get('navigation/logo')->render([
+                'display_logo' => true,
+                'use_logo_link' => false,
+                'logo_link' => null,
+                'link_attribs' => null,
+                'logo' => $logo,
+            ]);
         }
 
         $useLogoLink = true;
@@ -130,16 +136,13 @@ class NavigationHeader
             }
         }
 
-        return Template::get('navigation/logo')
-            ->render(
-                array(
-                    'displayLogo' => true,
-                    'useLogoLink' => $useLogoLink,
-                    'logoLink'    => $logoLink,
-                    'linkAttribs' => $linkAttriks,
-                    'logo'        => $logo,
-                )
-            );
+        return Template::get('navigation/logo')->render([
+            'display_logo' => true,
+            'use_logo_link' => $useLogoLink,
+            'logo_link' => $logoLink,
+            'link_attribs' => $linkAttriks,
+            'logo' => $logo,
+        ]);
     }
 
     /**
@@ -161,7 +164,7 @@ class NavigationHeader
             $showText,
             __('Home'),
             $showIcon,
-            'b_home.png'
+            'b_home'
         );
         // if we have chosen server
         if ($GLOBALS['server'] != 0) {
@@ -177,7 +180,7 @@ class NavigationHeader
                 $showText,
                 $text,
                 $showIcon,
-                's_loggoff.png',
+                's_loggoff',
                 '',
                 true,
                 '',
@@ -189,7 +192,7 @@ class NavigationHeader
             $showText,
             __('phpMyAdmin documentation'),
             $showIcon,
-            'b_docs.png',
+            'b_docs',
             '',
             false,
             'documentation'
@@ -199,7 +202,7 @@ class NavigationHeader
             $showText,
             __('Documentation'),
             $showIcon,
-            'b_sqlhelp.png',
+            'b_sqlhelp',
             '',
             false,
             'mysql_doc'
@@ -209,7 +212,7 @@ class NavigationHeader
             $showText,
             __('Navigation panel settings'),
             $showIcon,
-            's_cog.png',
+            's_cog',
             'pma_navigation_settings_icon',
             false,
             '',
@@ -220,7 +223,7 @@ class NavigationHeader
             $showText,
             __('Reload navigation panel'),
             $showIcon,
-            's_reload.png',
+            's_reload',
             'pma_navigation_reload'
         );
         $retval .= '</div>';
@@ -240,10 +243,9 @@ class NavigationHeader
         if ($GLOBALS['cfg']['NavigationDisplayServers']
             && count($GLOBALS['cfg']['Servers']) > 1
         ) {
-            include_once './libraries/select_server.lib.php';
             $retval .= '<!-- SERVER CHOICE START -->';
             $retval .= '<div id="serverChoice">';
-            $retval .= PMA_selectServer(true, true);
+            $retval .= Select::render(true, true);
             $retval .= '</div>';
             $retval .= '<!-- SERVER CHOICE END -->';
         }

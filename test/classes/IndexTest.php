@@ -5,17 +5,17 @@
  *
  * @package PhpMyAdmin-test
  */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\Index;
-
-require_once 'test/PMATestCase.php';
+use PhpMyAdmin\Tests\PmaTestCase;
 
 /**
  * Test for Index class
  *
  * @package PhpMyAdmin-test
  */
-class IndexTest extends PMATestCase
+class IndexTest extends PmaTestCase
 {
     private $_params = array();
 
@@ -104,10 +104,7 @@ class IndexTest extends PMATestCase
     public function testGetIndexChoices()
     {
         $index_choices = Index::getIndexChoices();
-        $this->assertEquals(
-            5,
-            count($index_choices)
-        );
+        $this->assertCount(5, $index_choices);
         $this->assertEquals(
             'PRIMARY,INDEX,UNIQUE,SPATIAL,FULLTEXT',
             implode(",", $index_choices)

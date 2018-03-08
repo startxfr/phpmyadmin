@@ -21,13 +21,6 @@ if (! extension_loaded('mysql')) {
     return;
 }
 
-require_once 'libraries/dbi/dbi_extension.lib.php';
-
-/**
- * MySQL client API
- */
-PMA_defineClientAPI(mysql_get_client_info());
-
 /**
  * Interface to the classic MySQL extension
  *
@@ -99,7 +92,7 @@ class DbiMysql implements DbiExtension
      * @return mixed false on error or a mysqli object on success
      */
     public function connect(
-        $user, $password, $server
+        $user, $password, array $server
     ) {
         if ($server['port'] === 0) {
             $server_port = '';
@@ -171,9 +164,9 @@ class DbiMysql implements DbiExtension
             return mysql_query($query, $link);
         } elseif ($options == ($options | DatabaseInterface::QUERY_UNBUFFERED)) {
             return mysql_unbuffered_query($query, $link);
-        } else {
-            return mysql_query($query, $link);
         }
+
+        return mysql_query($query, $link);
     }
 
     /**

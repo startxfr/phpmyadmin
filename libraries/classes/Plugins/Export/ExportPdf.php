@@ -8,6 +8,7 @@
  */
 namespace PhpMyAdmin\Plugins\Export;
 
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Plugins\Export\Helpers\Pdf;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
@@ -150,11 +151,7 @@ class ExportPdf extends ExportPlugin
         $pdf = $this->_getPdf();
 
         // instead of $pdf->Output():
-        if (!PMA_exportOutputHandler($pdf->getPDFData())) {
-            return false;
-        }
-
-        return true;
+        return Export::outputHandler($pdf->getPDFData());
     }
 
     /**
@@ -214,7 +211,7 @@ class ExportPdf extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -268,7 +265,7 @@ class ExportPdf extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;

@@ -6,9 +6,12 @@
  * @package PhpMyAdmin
  */
 
+use PhpMyAdmin\CreateAddField;
+use PhpMyAdmin\Message;
 use PhpMyAdmin\Response;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Url;
+use PhpMyAdmin\Util;
 
 /**
  * Get some core libraries
@@ -21,8 +24,7 @@ $scripts  = $header->getScripts();
 $scripts->addFile('tbl_structure.js');
 
 // Check parameters
-PhpMyAdmin\Util::checkParameters(array('db', 'table'));
-
+Util::checkParameters(array('db', 'table'));
 
 /**
  * Defines the url to return to in case of error in a sql statement
@@ -62,9 +64,9 @@ if (isset($_REQUEST['do_save_data'])) {
     //tbl_structure.php below
     unset($_REQUEST['do_save_data']);
 
-    include_once 'libraries/create_addfield.lib.php';
+    $createAddField = new CreateAddField($GLOBALS['dbi']);
 
-    list($result, $sql_query) = PMA_tryColumnCreationQuery($db, $table, $err_url);
+    list($result, $sql_query) = $createAddField->tryColumnCreationQuery($db, $table, $err_url);
 
     if ($result === true) {
         // Update comment table for mime types [MIME]
@@ -90,17 +92,17 @@ if (isset($_REQUEST['do_save_data'])) {
         }
 
         // Go back to the structure sub-page
-        $message = PhpMyAdmin\Message::success(
+        $message = Message::success(
             __('Table %1$s has been altered successfully.')
         );
         $message->addParam($table);
         $response->addJSON(
             'message',
-            PhpMyAdmin\Util::getMessage($message, $sql_query, 'success')
+            Util::getMessage($message, $sql_query, 'success')
         );
         exit;
     } else {
-        $error_message_html = PhpMyAdmin\Util::mysqlDie(
+        $error_message_html = Util::mysqlDie(
             '',
             '',
             false,

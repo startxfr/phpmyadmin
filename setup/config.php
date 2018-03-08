@@ -5,8 +5,8 @@
  *
  * @package PhpMyAdmin-Setup
  */
-use PhpMyAdmin\Config\FormDisplay;
 use PhpMyAdmin\Setup\ConfigGenerator;
+use PhpMyAdmin\Config\Forms\Setup\ConfigForm;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\Url;
 use PhpMyAdmin\Response;
@@ -16,11 +16,8 @@ use PhpMyAdmin\Response;
  */
 require './lib/common.inc.php';
 
-require './libraries/config/setup.forms.php';
-
-$form_display = new FormDisplay($GLOBALS['ConfigFile']);
-$form_display->registerForm('_config.php', $forms['_config.php']);
-$form_display->save('_config.php');
+$form_display = new ConfigForm($GLOBALS['ConfigFile']);
+$form_display->save('Config');
 
 $response = Response::getInstance();
 
@@ -41,6 +38,7 @@ if (Core::ifSetOr($_POST['submit_clear'], '')) {
     // Output generated config file
     //
     Core::downloadHeader('config.inc.php', 'text/plain');
+    $response->disable();
     echo ConfigGenerator::getConfigFile($GLOBALS['ConfigFile']);
     exit;
 } else {

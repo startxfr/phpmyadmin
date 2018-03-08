@@ -4,22 +4,18 @@
  *
  * @package PhpMyAdmin-test
  */
-
-/*
- * Include to test.
- */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\ErrorHandler;
-use PhpMyAdmin\Theme;
-
-require_once 'test/PMATestCase.php';
+use PhpMyAdmin\Tests\PmaTestCase;
+use ReflectionClass;
 
 /**
  * Test for PhpMyAdmin\ErrorHandler class.
  *
  * @package PhpMyAdmin-test
  */
-class ErrorHandlerTest extends PMATestCase
+class ErrorHandlerTest extends PmaTestCase
 {
     /**
      * @access protected
@@ -36,7 +32,6 @@ class ErrorHandlerTest extends PMATestCase
     protected function setUp()
     {
         $this->object = new ErrorHandler();
-
     }
 
     /**
@@ -169,7 +164,7 @@ class ErrorHandlerTest extends PMATestCase
             'checkSavedErrors',
             array()
         );
-        $this->assertTrue(!isset($_SESSION['errors']));
+        $this->assertArrayNotHasKey('errors', $_SESSION);
     }
 
     /**
@@ -214,9 +209,9 @@ class ErrorHandlerTest extends PMATestCase
             1,
             $this->object->countErrors()
         );
-        $this->assertEquals(
+        $this->assertCount(
             1,
-            count($this->object->sliceErrors(0))
+            $this->object->sliceErrors(0)
         );
         $this->assertEquals(
             0,

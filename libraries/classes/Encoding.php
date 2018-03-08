@@ -9,6 +9,7 @@ namespace PhpMyAdmin;
 
 use PhpMyAdmin\Config\ConfigFile;
 use PhpMyAdmin\Core;
+use PhpMyAdmin\Template;
 
 /**
  * Encoding conversion helper class
@@ -76,7 +77,7 @@ class Encoding
      * @var array
      */
     private static $_engineorder = array(
-        'mb', 'iconv', 'recode',
+        'iconv', 'mb', 'recode',
     );
 
     /**
@@ -100,7 +101,7 @@ class Encoding
 
         /* Use user configuration */
         if (isset(self::$_enginemap[$engine])) {
-            if (@function_exists(self::$_enginemap[$engine][0])) {
+            if (function_exists(self::$_enginemap[$engine][0])) {
                 self::$_engine = self::$_enginemap[$engine][1];
                 return;
             } else {
@@ -110,7 +111,7 @@ class Encoding
 
         /* Autodetection */
         foreach (self::$_engineorder as $engine) {
-            if (@function_exists(self::$_enginemap[$engine][0])) {
+            if (function_exists(self::$_enginemap[$engine][0])) {
                 self::$_engine = self::$_enginemap[$engine][1];
                 return;
             }
@@ -307,27 +308,14 @@ class Encoding
      */
     public static function kanjiEncodingForm()
     {
-        return '<ul><li>'
-            . '<input type="radio" name="knjenc" value="" checked="checked" '
-            . 'id="kj-none" />'
-            . '<label for="kj-none">'
-            /* l10n: This is currently used only in Japanese locales */
-            . _pgettext('None encoding conversion', 'None')
-            . '</label>'
-            . '<input type="radio" name="knjenc" value="EUC-JP" id="kj-euc" />'
-            . '<label for="kj-euc">EUC</label>'
-            . '<input type="radio" name="knjenc" value="SJIS" id="kj-sjis" />'
-            . '<label for="kj-sjis">SJIS</label>'
-            . '</li>'
-            . '<li>'
-            . '<input type="checkbox" name="xkana" value="kana" id="kj-kana" />'
-            . '<label for="kj-kana">'
-            /* l10n: This is currently used only in Japanese locales */
-            . __('Convert to Kana')
-            . '</label><br />'
-            . '</li></ul>';
+        return Template::get('encoding/kanji_encoding_form')->render();
     }
 
+    /**
+     * Lists available encodings.
+     *
+     * @return array
+     */
     public static function listEncodings()
     {
         if (is_null(self::$_engine)) {

@@ -10,7 +10,7 @@ namespace PhpMyAdmin\Navigation\Nodes;
 use PhpMyAdmin\Navigation\NodeFactory;
 use PhpMyAdmin\Util;
 
-require_once './libraries/check_user_privileges.lib.php';
+require_once './libraries/check_user_privileges.inc.php';
 
 /**
  * Represents a container for database nodes in the navigation tree
@@ -36,7 +36,7 @@ class NodeDatabaseContainer extends Node
                 _pgettext('Create new database', 'New')
             );
             $new->isNew = true;
-            $new->icon = Util::getImage('b_newdb.png', '');
+            $new->icon = Util::getImage('b_newdb', '');
             $new->links = array(
                 'text' => 'server_databases.php?server=' . $GLOBALS['server'],
                 'icon' => 'server_databases.php?server=' . $GLOBALS['server'],

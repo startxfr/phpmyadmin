@@ -55,13 +55,17 @@ class TableGisVisualizationController extends TableController
      * @param array  $visualizationSettings visualization settings
      */
     public function __construct(
+        $response,
+        $dbi,
+        $db,
+        $table,
         $sql_query,
-        $url_params,
+        array $url_params,
         $goto,
         $back,
-        $visualizationSettings
+        array $visualizationSettings
     ) {
-        parent::__construct();
+        parent::__construct($response, $dbi, $db, $table);
 
         $this->sql_query = $sql_query;
         $this->url_params = $url_params;
@@ -198,13 +202,14 @@ class TableGisVisualizationController extends TableController
         $html = Template::get('table/gis_visualization/gis_visualization')->render(
             array(
                 'url_params' => $this->url_params,
-                'downloadUrl' => $downloadUrl,
-                'labelCandidates' => $labelCandidates,
-                'spatialCandidates' => $spatialCandidates,
-                'visualizationSettings' => $this->visualizationSettings,
+                'download_url' => $downloadUrl,
+                'label_candidates' => $labelCandidates,
+                'spatial_candidates' => $spatialCandidates,
+                'visualization_settings' => $this->visualizationSettings,
                 'sql_query' => $this->sql_query,
                 'visualization' => $this->visualization->toImage('svg'),
-                'drawOl' => $this->visualization->asOl()
+                'draw_ol' => $this->visualization->asOl(),
+                'pma_theme_image' => $GLOBALS['pmaThemeImage']
             )
         );
 

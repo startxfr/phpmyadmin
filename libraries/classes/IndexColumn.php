@@ -62,7 +62,7 @@ class IndexColumn
      *
      * @param array $params an array containing the parameters of the index column
      */
-    public function __construct($params = array())
+    public function __construct(array $params = array())
     {
         $this->set($params);
     }
@@ -74,7 +74,7 @@ class IndexColumn
      *
      * @return void
      */
-    public function set($params)
+    public function set(array $params)
     {
         if (isset($params['Column_name'])) {
             $this->_name = $params['Column_name'];
@@ -139,12 +139,12 @@ class IndexColumn
         if ($as_text) {
             if (!$this->_null || $this->_null == 'NO') {
                 return __('No');
-            } else {
-                return __('Yes');
             }
-        } else {
-            return $this->_null;
+
+            return __('Yes');
         }
+
+        return $this->_null;
     }
 
     /**

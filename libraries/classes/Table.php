@@ -10,7 +10,9 @@ namespace PhpMyAdmin;
 use PhpMyAdmin\DatabaseInterface;
 use PhpMyAdmin\Index;
 use PhpMyAdmin\Message;
+use PhpMyAdmin\Plugins;
 use PhpMyAdmin\Plugins\Export\ExportSql;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\SqlParser\Components\Expression;
 use PhpMyAdmin\SqlParser\Components\OptionsArray;
 use PhpMyAdmin\SqlParser\Context;
@@ -103,6 +105,20 @@ class Table
     }
 
     /**
+     * Table getter
+     *
+     * @param string            $table_name table name
+     * @param string            $db_name    database name
+     * @param DatabaseInterface $dbi        database interface for the table
+     *
+     * @return Table
+     */
+    public static function get($table_name, $db_name, DatabaseInterface $dbi = null)
+    {
+        return new Table($table_name, $db_name, $dbi);
+    }
+
+    /**
      * return the last error
      *
      * @return string the last error
@@ -169,7 +185,7 @@ class Table
     /**
      * Checks the storage engine used to create table
      *
-     * @param array or string $engine Checks the table engine against an
+     * @param array|string $engine Checks the table engine against an
      * array of engine strings or a single string, should be uppercase
      *
      * @return bool True, if $engine matches the storage engine for the table,
@@ -690,7 +706,7 @@ class Table
                     'SELECT 1 FROM ' . Util::backquote($db) . '.'
                     . Util::backquote($table) . ' LIMIT '
                     . $GLOBALS['cfg']['MaxExactCountViews'],
-                    null,
+                    DatabaseInterface::CONNECT_USER,
                     DatabaseInterface::QUERY_STORE
                 );
                 if (!$this->_dbi->getError()) {
@@ -762,8 +778,8 @@ class Table
      *
      * @return int|boolean
      */
-    static public function duplicateInfo($work, $pma_table, $get_fields,
-        $where_fields, $new_fields
+    static public function duplicateInfo($work, $pma_table, array $get_fields,
+        array $where_fields, array $new_fields
     ) {
         $last_id = -1;
 
@@ -799,7 +815,7 @@ class Table
 
         // must use DatabaseInterface::QUERY_STORE here, since we execute
         // another query inside the loop
-        $table_copy_rs = PMA_queryAsControlUser(
+        $table_copy_rs = Relation::queryAsControlUser(
             $table_copy_query, true, DatabaseInterface::QUERY_STORE
         );
 
@@ -819,7 +835,7 @@ class Table
                 . implode('\', \'', $value_parts) . '\', \''
                 . implode('\', \'', $new_value_parts) . '\')';
 
-            PMA_queryAsControlUser($new_table_query);
+            Relation::queryAsControlUser($new_table_query);
             $last_id = $GLOBALS['dbi']->insertId();
         } // end while
 
@@ -907,15 +923,12 @@ class Table
 
         // No table is created when this is a data-only operation.
         if ($what != 'dataonly') {
-
-            include_once "libraries/plugin_interface.lib.php";
-
             /**
              * Instance used for exporting the current structure of the table.
              *
-             * @var \PhpMyAdmin\Plugins\Export\ExportSql
+             * @var PhpMyAdmin\Plugins\Export\ExportSql
              */
-            $export_sql_plugin = PMA_getPlugin(
+            $export_sql_plugin = Plugins::getPlugin(
                 "export",
                 "sql",
                 'libraries/classes/Plugins/Export/',
@@ -1160,7 +1173,7 @@ class Table
             }
         }
 
-        PMA_getRelationsParam();
+        Relation::getRelationsParam();
 
         // Drops old table if the user has requested to move it
         if ($move) {
@@ -1179,7 +1192,7 @@ class Table
             $GLOBALS['dbi']->query($sql_drop_query);
 
             // Renable table in configuration storage
-            PMA_REL_renameTable(
+            Relation::renameTable(
                 $source_db, $target_db,
                 $source_table, $target_table
             );
@@ -1197,7 +1210,7 @@ class Table
 
         if ($GLOBALS['cfgRelation']['commwork']) {
             // Get all comments and MIME-Types for current table
-            $comments_copy_rs = PMA_queryAsControlUser(
+            $comments_copy_rs = Relation::queryAsControlUser(
                 'SELECT column_name, comment'
                 . ($GLOBALS['cfgRelation']['mimework']
                 ? ', mimetype, transformation, transformation_options'
@@ -1245,7 +1258,7 @@ class Table
                         . '\''
                         : '')
                     . ')';
-                PMA_queryAsControlUser($new_comment_query);
+                Relation::queryAsControlUser($new_comment_query);
             } // end while
             $GLOBALS['dbi']->freeResult($comments_copy_rs);
             unset($comments_copy_rs);
@@ -1393,7 +1406,7 @@ class Table
             // only allow the above regex in unquoted identifiers
             // see : https://dev.mysql.com/doc/refman/5.7/en/identifiers.html
             return true;
-        } else if ($is_backquoted) {
+        } elseif ($is_backquoted) {
             // If backquoted, all characters should be allowed (except w/ trailing spaces)
             return true;
         }
@@ -1484,7 +1497,7 @@ class Table
         $this->_db_name = $new_db;
 
         // Renable table in configuration storage
-        PMA_REL_renameTable(
+        Relation::renameTable(
             $old_db, $new_db,
             $old_name, $new_name
         );
@@ -1564,7 +1577,7 @@ class Table
      *
      * @return array
      */
-    private function _formatColumns($indexed, $backquoted, $fullName)
+    private function _formatColumns(array $indexed, $backquoted, $fullName)
     {
         $return = array();
         foreach ($indexed as $column) {
@@ -1663,7 +1676,7 @@ class Table
                     $value = Util::backquote($value);
                 }
 
-                if (strpos($column['Extra'], 'GENERATED') === false) {
+                if (strpos($column['Extra'], 'GENERATED') === false && strpos($column['Extra'], 'VIRTUAL') === false) {
                     array_push($ret, $value);
                 }
             }
@@ -1679,7 +1692,7 @@ class Table
      */
     protected function getUiPrefsFromDb()
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         $pma_table = Util::backquote($cfgRelation['db']) . "."
             . Util::backquote($cfgRelation['table_uiprefs']);
 
@@ -1689,12 +1702,12 @@ class Table
             . " AND `db_name` = '" . $GLOBALS['dbi']->escapeString($this->_db_name) . "'"
             . " AND `table_name` = '" . $GLOBALS['dbi']->escapeString($this->_name) . "'";
 
-        $row = $this->_dbi->fetchArray(PMA_queryAsControlUser($sql_query));
+        $row = $this->_dbi->fetchArray(Relation::queryAsControlUser($sql_query));
         if (isset($row[0])) {
             return json_decode($row[0], true);
-        } else {
-            return array();
         }
+
+        return array();
     }
 
     /**
@@ -1704,7 +1717,7 @@ class Table
      */
     protected function saveUiPrefsToDb()
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         $pma_table = Util::backquote($cfgRelation['db']) . "."
             . Util::backquote($cfgRelation['table_uiprefs']);
 
@@ -1717,7 +1730,7 @@ class Table
             . "', '" . $GLOBALS['dbi']->escapeString($this->_name) . "', '"
             . $GLOBALS['dbi']->escapeString(json_encode($this->uiprefs)) . "')";
 
-        $success = $this->_dbi->tryQuery($sql_query, $GLOBALS['controllink']);
+        $success = $this->_dbi->tryQuery($sql_query, DatabaseInterface::CONNECT_CONTROL);
 
         if (!$success) {
             $message = Message::error(
@@ -1725,7 +1738,7 @@ class Table
             );
             $message->addMessage(
                 Message::rawError(
-                    $this->_dbi->getError($GLOBALS['controllink'])
+                    $this->_dbi->getError(DatabaseInterface::CONNECT_CONTROL)
                 ),
                 '<br /><br />'
             );
@@ -1744,7 +1757,7 @@ class Table
                 ' ORDER BY last_update ASC' .
                 ' LIMIT ' . $num_rows_to_delete;
             $success = $this->_dbi->tryQuery(
-                $sql_query, $GLOBALS['controllink']
+                $sql_query, DatabaseInterface::CONNECT_CONTROL
             );
 
             if (!$success) {
@@ -1759,7 +1772,7 @@ class Table
                 );
                 $message->addMessage(
                     Message::rawError(
-                        $this->_dbi->getError($GLOBALS['controllink'])
+                        $this->_dbi->getError(DatabaseInterface::CONNECT_CONTROL)
                     ),
                     '<br /><br />'
                 );
@@ -1779,7 +1792,7 @@ class Table
      */
     protected function loadUiPrefs()
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         $server_id = $GLOBALS['server'];
 
         // set session variable if it's still undefined
@@ -1840,7 +1853,7 @@ class Table
                 }
             }
             // remove the property, since it no longer exists in database
-            $this->removeUiProp(self::PROP_SORTED_COLUMN);
+            $this->removeUiProp($property);
             return false;
         }
 
@@ -1858,7 +1871,7 @@ class Table
             }
 
             // remove the property, since the table has been modified
-            $this->removeUiProp(self::PROP_COLUMN_ORDER);
+            $this->removeUiProp($property);
             return false;
         }
 
@@ -1917,7 +1930,7 @@ class Table
         $this->uiprefs[$property] = $value;
 
         // check if pmadb is set
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         if ($cfgRelation['uiprefswork']) {
             return $this->saveUiprefsToDb();
         }
@@ -1940,7 +1953,7 @@ class Table
             unset($this->uiprefs[$property]);
 
             // check if pmadb is set
-            $cfgRelation = PMA_getRelationsParam();
+            $cfgRelation = Relation::getRelationsParam();
             if ($cfgRelation['uiprefswork']) {
                 return $this->saveUiprefsToDb();
             }
@@ -2119,37 +2132,24 @@ class Table
     /**
      * Function to handle update for display field
      *
-     * @param string $disp          current display field
      * @param string $display_field display field
      * @param array  $cfgRelation   configuration relation
      *
      * @return boolean True on update succeed or False on failure
      */
-    public function updateDisplayField($disp, $display_field, $cfgRelation)
+    public function updateDisplayField($display_field, array $cfgRelation)
     {
         $upd_query = false;
-        if ($disp) {
-            if ($display_field == '') {
-                $upd_query = 'DELETE FROM '
-                    . Util::backquote($GLOBALS['cfgRelation']['db'])
-                    . '.' . Util::backquote($cfgRelation['table_info'])
-                    . ' WHERE db_name  = \''
-                    . $GLOBALS['dbi']->escapeString($this->_db_name) . '\''
-                    . ' AND table_name = \''
-                    . $GLOBALS['dbi']->escapeString($this->_name) . '\'';
-            } elseif ($disp != $display_field) {
-                $upd_query = 'UPDATE '
-                    . Util::backquote($GLOBALS['cfgRelation']['db'])
-                    . '.' . Util::backquote($cfgRelation['table_info'])
-                    . ' SET display_field = \''
-                    . $GLOBALS['dbi']->escapeString($display_field) . '\''
-                    . ' WHERE db_name  = \''
-                    . $GLOBALS['dbi']->escapeString($this->_db_name) . '\''
-                    . ' AND table_name = \''
-                    . $GLOBALS['dbi']->escapeString($this->_name) . '\'';
-            }
-        } elseif ($display_field != '') {
-            $upd_query = 'INSERT INTO '
+        if ($display_field == '') {
+            $upd_query = 'DELETE FROM '
+                . Util::backquote($GLOBALS['cfgRelation']['db'])
+                . '.' . Util::backquote($cfgRelation['table_info'])
+                . ' WHERE db_name  = \''
+                . $GLOBALS['dbi']->escapeString($this->_db_name) . '\''
+                . ' AND table_name = \''
+                . $GLOBALS['dbi']->escapeString($this->_name) . '\'';
+        } else {
+            $upd_query = 'REPLACE INTO '
                 . Util::backquote($GLOBALS['cfgRelation']['db'])
                 . '.' . Util::backquote($cfgRelation['table_info'])
                 . '(db_name, table_name, display_field) VALUES('
@@ -2161,7 +2161,7 @@ class Table
         if ($upd_query) {
             $this->_dbi->query(
                 $upd_query,
-                $GLOBALS['controllink'],
+                DatabaseInterface::CONNECT_CONTROL,
                 0,
                 false
             );
@@ -2182,9 +2182,9 @@ class Table
      *
      * @return boolean
      */
-    public function updateInternalRelations($multi_edit_columns_name,
-        $destination_db, $destination_table, $destination_column,
-        $cfgRelation, $existrel
+    public function updateInternalRelations(array $multi_edit_columns_name,
+        array $destination_db, array $destination_table, array $destination_column,
+        array $cfgRelation, $existrel
     ) {
         $updated = false;
         foreach ($destination_db as $master_field_md5 => $foreign_db) {
@@ -2246,7 +2246,7 @@ class Table
             if (isset($upd_query)) {
                 $this->_dbi->query(
                     $upd_query,
-                    $GLOBALS['controllink'],
+                    DatabaseInterface::CONNECT_CONTROL,
                     0,
                     false
                 );
@@ -2269,9 +2269,9 @@ class Table
      *
      * @return array
      */
-    public function updateForeignKeys($destination_foreign_db,
-        $multi_edit_columns_name, $destination_foreign_table,
-        $destination_foreign_column, $options_array, $table, $existrel_foreign
+    public function updateForeignKeys(array $destination_foreign_db,
+        array $multi_edit_columns_name, array $destination_foreign_table,
+        array $destination_foreign_column, array $options_array, $table, array $existrel_foreign
     ) {
         $html_output = '';
         $preview_sql_data = '';
@@ -2463,10 +2463,10 @@ class Table
      */
     private function _getSQLToCreateForeignKey(
         $table,
-        $field,
+        array $field,
         $foreignDb,
         $foreignTable,
-        $foreignField,
+        array $foreignField,
         $name = null,
         $onDelete = null,
         $onUpdate = null

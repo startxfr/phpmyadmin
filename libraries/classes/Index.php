@@ -116,7 +116,7 @@ class Index
      *
      * @param array $params parameters
      */
-    public function __construct($params = array())
+    public function __construct(array $params = array())
     {
         $this->set($params);
     }
@@ -140,9 +140,9 @@ class Index
                 Index::$_registry[$schema][$table][$index->getName()] = $index;
             }
             return $index;
-        } else {
-            return Index::$_registry[$schema][$table][$index_name];
         }
+
+        return Index::$_registry[$schema][$table][$index_name];
     }
 
     /**
@@ -159,9 +159,9 @@ class Index
 
         if (isset(Index::$_registry[$schema][$table])) {
             return Index::$_registry[$schema][$table];
-        } else {
-            return array();
         }
+
+        return array();
     }
 
     /**
@@ -220,9 +220,9 @@ class Index
 
         if (isset(Index::$_registry[$schema][$table]['PRIMARY'])) {
             return Index::$_registry[$schema][$table]['PRIMARY'];
-        } else {
-            return false;
         }
+
+        return false;
     }
 
     /**
@@ -263,7 +263,7 @@ class Index
      *
      * @return void
      */
-    public function addColumn($params)
+    public function addColumn(array $params)
     {
         if (isset($params['Column_name'])
             && strlen($params['Column_name']) > 0
@@ -279,7 +279,7 @@ class Index
      *
      * @return void
      */
-    public function addColumns($columns)
+    public function addColumns(array $columns)
     {
         $_columns = array();
 
@@ -327,7 +327,7 @@ class Index
      *
      * @return void
      */
-    public function set($params)
+    public function set(array $params)
     {
         if (isset($params['columns'])) {
             $this->addColumns($params['columns']);
@@ -727,11 +727,10 @@ class Index
         $r .= '<th>' . __('Comment') . '</th>';
         $r .= '</tr>';
         $r .= '</thead>';
-        $r .= '<tbody>';
 
         foreach ($indexes as $index) {
             $row_span = ' rowspan="' . $index->getColumnCount() . '" ';
-
+            $r .= '<tbody class="row_span">';
             $r .= '<tr class="noclick" >';
 
             if (! $print_mode) {
@@ -743,7 +742,7 @@ class Index
                    . '    <a class="';
                 $r .= 'ajax';
                 $r .= '" href="tbl_indexes.php' . Url::getCommon($this_params)
-                   . '">' . Util::getIcon('b_edit.png', __('Edit')) . '</a>'
+                   . '">' . Util::getIcon('b_edit', __('Edit')) . '</a>'
                    . '</td>' . "\n";
                 $this_params = $GLOBALS['url_params'];
                 if ($index->getName() == 'PRIMARY') {
@@ -770,7 +769,7 @@ class Index
                 $r .= ' ajax';
                 $r .= '" href="sql.php' . Url::getCommon($this_params)
                    . '" >'
-                   . Util::getIcon('b_drop.png', __('Drop'))  . '</a>'
+                   . Util::getIcon('b_drop', __('Drop'))  . '</a>'
                    . '</td>' . "\n";
             }
 
@@ -819,10 +818,11 @@ class Index
                         . htmlspecialchars($index->getComments()) . '</td>';
                 }
                 $r .= '</tr>';
+
             } // end foreach $index['Sequences']
+            $r .= '</tbody>';
 
         } // end while
-        $r .= '</tbody>';
         $r .= '</table>';
         $r .= '</div>';
         if (! $print_mode) {

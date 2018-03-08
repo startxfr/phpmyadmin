@@ -47,7 +47,7 @@ Basic settings
     :default: ``''``
 
     .. versionchanged:: 4.6.5
-        
+
         This setting was not available in phpMyAdmin 4.6.0 - 4.6.4.
 
     Sets here the complete :term:`URL` (with full path) to your phpMyAdmin
@@ -246,7 +246,6 @@ Server connection settings
         incrementation) serveral times. There is no need to define full server
         array, just define values you need to change.
 
-
 .. config:option:: $cfg['Servers'][$i]['host']
 
     :type: string
@@ -438,7 +437,6 @@ Server connection settings
         :config:option:`$cfg['Servers'][$i]['ssl_ca_path']`,
         :config:option:`$cfg['Servers'][$i]['ssl_verify']`
 
-
 .. config:option:: $cfg['Servers'][$i]['ssl_verify']
 
     :type: boolean
@@ -456,7 +454,7 @@ Server connection settings
     Since PHP 5.6.0 it also verifies whether server name matches CN of its
     certificate. There is currently no way to disable just this check without
     disabling complete SSL verification.
-    
+
     .. warning::
 
         Disabling the certificate verification defeats purpose of using SSL.
@@ -541,19 +539,19 @@ Server connection settings
     :type: string
     :default: ``''``
 
-    This special account is used to access :ref:`linked-tables`. 
+    This special account is used to access :ref:`linked-tables`.
     You don't need it in single user case, but if phpMyAdmin is shared it
     is recommended to give access to :ref:`linked-tables` only to this user
-    and configure phpMyAdmin to use it. All users will then be able to use 
+    and configure phpMyAdmin to use it. All users will then be able to use
     the features without need to have direct access to :ref:`linked-tables`.
 
     .. versionchanged:: 2.2.5
         those were called ``stduser`` and ``stdpass``
 
-    .. seealso:: 
-        
-        :ref:`setup`, 
-        :ref:`authentication_modes`, 
+    .. seealso::
+
+        :ref:`setup`,
+        :ref:`authentication_modes`,
         :ref:`linked-tables`,
         :config:option:`$cfg['Servers'][$i]['pmadb']`,
         :config:option:`$cfg['Servers'][$i]['controlhost']`,
@@ -989,7 +987,7 @@ Server connection settings
     the need to select the database, and then select the table. When you
     select a table from the list, it will jump to the page specified in
     :config:option:`$cfg['NavigationTreeDefaultTabTable']`.
-    
+
     You can add tables to this list or remove tables from it in database
     structure page by clicking on the star icons next to table names. Using
     :config:option:`$cfg['NumFavoriteTables']` you can configure the maximum
@@ -1345,7 +1343,6 @@ Server connection settings
 
     .. code-block:: none
 
-
         'all' -> 0.0.0.0/0
         'localhost' -> 127.0.0.1/8
         'localnetA' -> SERVER_ADDRESS/8
@@ -1385,11 +1382,11 @@ Server connection settings
 
     Disable using ``INFORMATION_SCHEMA`` to retrieve information (use
     ``SHOW`` commands instead), because of speed issues when many
-    databases are present. 
+    databases are present.
 
     .. note::
 
-        Enabling this option might give you big performance boost on older
+        Enabling this option might give you a big performance boost on older
         MySQL servers.
 
 .. config:option:: $cfg['Servers'][$i]['SignonScript']
@@ -1578,7 +1575,7 @@ Generic settings
     :default: false
 
     .. deprecated:: 4.6.0
-        
+
         This setting is no longer available since phpMyAdmin 4.6.0. Please
         adjust your webserver instead.
 
@@ -1608,6 +1605,11 @@ Generic settings
 
     Path for storing session data (`session\_save\_path PHP parameter
     <https://secure.php.net/session_save_path>`_).
+
+    .. warning::
+
+        This folder should not be publicly accessible through the webserver,
+        otherwise you risk leaking private data from your session.
 
 .. config:option:: $cfg['MemoryLimit']
 
@@ -1725,8 +1727,8 @@ Cookie authentication options
     The "cookie" auth\_type uses AES algorithm to encrypt the password. If you
     are using the "cookie" auth\_type, enter here a random passphrase of your
     choice. It will be used internally by the AES algorithm: you won’t be
-    prompted for this passphrase. 
-    
+    prompted for this passphrase.
+
     The secret should be 32 characters long. Using shorter will lead to weaker security
     of encrypted cookies, using longer will cause no harm.
 
@@ -1817,7 +1819,7 @@ Cookie authentication options
     .. code-block:: php
 
         // Allow connection to three listed servers:
-        $cfg['ArbitraryServerRegexp'] = '/^(server|another|yetdifferent)$/'; 
+        $cfg['ArbitraryServerRegexp'] = '/^(server|another|yetdifferent)$/';
 
         // Allow connection to range of IP addresses:
         $cfg['ArbitraryServerRegexp'] = '@^192\.168\.0\.[0-9]{1,}$@';
@@ -2089,6 +2091,12 @@ Navigation panel setup
 
     Whether to show events under database in the navigation panel.
 
+.. config:option:: $cfg['NavigationWidth']
+
+    :type: integer
+    :default: 240
+
+    Navigation panel width, set to 0 to collapse it by default.
 
 Main panel
 ----------
@@ -2209,6 +2217,13 @@ Database structure
 
     Defines whether the table structure actions are hidden under a "More"
     drop-down.
+
+.. config:option:: $cfg['ShowColumnComments']
+
+    :type: boolean
+    :default: true
+
+    Defines whether to show column comments as a column in the table structure view.
 
 Browse mode
 -----------
@@ -2333,7 +2348,9 @@ Editing mode
     :type: integer
     :default: 2
 
-    Defines the maximum number of concurrent entries for the Insert page.
+    Defines the default number of rows to be entered from the Insert page.
+    Users can manually change this from the bottom of that page to add or remove
+    blank rows.
 
 .. config:option:: $cfg['ForeignKeyMaxLimit']
 
@@ -2396,7 +2413,7 @@ Export and import settings
     identify what they mean.
 
 .. config:option:: $cfg['Export']['format']
-   
+
     :type: string
     :default: ``'sql'``
 
@@ -2903,7 +2920,6 @@ Text fields
     Whether to enable autocomplete for table and column names in any
     SQL query box.
 
-
 SQL query box settings
 ----------------------
 
@@ -3100,13 +3116,21 @@ Various display setting
 .. config:option:: $cfg['MaxExactCount']
 
     :type: integer
-    :default: 500000
+    :default: 50000
 
     For InnoDB tables, determines for how large tables phpMyAdmin should
     get the exact row count using ``SELECT COUNT``. If the approximate row
     count as returned by ``SHOW TABLE STATUS`` is smaller than this value,
     ``SELECT COUNT`` will be used, otherwise the approximate count will be
     used.
+
+    .. versionchanged:: 4.8.0
+
+        The default value was lowered to 50000 for performance reasons.
+
+    .. versionchanged:: 4.2.6
+
+        The default value was changed to 500000.
 
     .. seealso:: :ref:`faq3_11`
 
@@ -3145,7 +3169,7 @@ Various display setting
 
     Contains names of configuration options (keys in ``$cfg`` array) that
     users can't set through user preferences. For possible values, refer
-    to :file:`libraries/config/user_preferences.forms.php`.
+    to clases under :file:`libraries/classes/Config/Forms/User/`.
 
 .. config:option:: $cfg['UserprefsDeveloperTab']
 
@@ -3204,6 +3228,13 @@ Theme manager settings
 
     Whether to allow different theme for each server.
 
+.. config:option:: $cfg['FontSize']
+
+    :type: string
+    :default: '82%'
+
+    Font size to use, is applied in CSS.
+
 Default queries
 ---------------
 
@@ -3219,7 +3250,6 @@ Default queries
 
     Default queries that will be displayed in query boxes when user didn't
     specify any. You can use standard :ref:`faq6_27`.
-
 
 MySQL settings
 --------------
@@ -3287,6 +3317,62 @@ Default options for Transformations
     :type: array
     :default: array('', '', '')
 
+Console settings
+----------------
+
+.. note::
+
+    These settings are mostly meant to be changed by user.
+
+.. config:option:: $cfg['Console']['StartHistory']
+
+    :type: boolean
+    :default: false
+
+    Show query history at start
+
+.. config:option:: $cfg['Console']['AlwaysExpand']
+
+    :type: boolean
+    :default: false
+
+    Always expand query messages
+
+.. config:option:: $cfg['Console']['CurrentQuery']
+
+    :type: boolean
+    :default: true
+
+    Show current browsing query
+
+.. config:option:: $cfg['Console']['EnterExecutes']
+
+    :type: boolean
+    :default: false
+
+    Execute queries on Enter and insert new line with Shift + Enter
+
+.. config:option:: $cfg['Console']['DarkTheme']
+
+    :type: boolean
+    :default: false
+
+    Switch to dark theme
+
+.. config:option:: $cfg['Console']['Mode']
+
+    :type: string
+    :default: 'info'
+
+    Console mode
+
+.. config:option:: $cfg['Console']['Height']
+
+    :type: integer
+    :default: 92
+
+    Console height
+
 Developer
 ---------
 
@@ -3330,6 +3416,13 @@ Developer
     * The setup script is enabled even with existing configuration.
     * The setup does not try to connect to the MySQL server.
 
+.. config:option:: $cfg['DBG']['simple2fa']
+
+    :type: boolean
+    :default: false
+
+    Can be used for testing two-factor authentication using :ref:`simple2fa`.
+
 .. _config-examples:
 
 Examples
@@ -3352,7 +3445,6 @@ configuration options, only the most frequently used ones.
 
     Don't use the controluser 'pma' if it does not yet exist and don't use 'pmapass'
     as password.
-
 
 .. _example-signon:
 

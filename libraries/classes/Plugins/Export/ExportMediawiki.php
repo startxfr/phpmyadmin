@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -188,7 +189,7 @@ class ExportMediawiki extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -261,7 +262,7 @@ class ExportMediawiki extends ExportPlugin
             break;
         } // end switch
 
-        return PMA_exportOutputHandler($output);
+        return Export::outputHandler($output);
     }
 
     /**
@@ -282,7 +283,7 @@ class ExportMediawiki extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -329,7 +330,7 @@ class ExportMediawiki extends ExportPlugin
         // Get the table data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);
@@ -346,7 +347,7 @@ class ExportMediawiki extends ExportPlugin
         // End table construction
         $output .= "|}" . str_repeat($this->_exportCRLF(), 2);
 
-        return PMA_exportOutputHandler($output);
+        return Export::outputHandler($output);
     }
 
     /**

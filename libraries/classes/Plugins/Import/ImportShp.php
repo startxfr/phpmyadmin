@@ -13,6 +13,7 @@ use PhpMyAdmin\Gis\GisMultiLineString;
 use PhpMyAdmin\Gis\GisMultiPoint;
 use PhpMyAdmin\Gis\GisPoint;
 use PhpMyAdmin\Gis\GisPolygon;
+use PhpMyAdmin\Import;
 use PhpMyAdmin\Message;
 use PhpMyAdmin\Plugins\ImportPlugin;
 use PhpMyAdmin\Properties\Plugins\ImportPluginProperties;
@@ -28,11 +29,19 @@ use PhpMyAdmin\ZipExtension;
 class ImportShp extends ImportPlugin
 {
     /**
+     * @var ZipExtension
+     */
+    private $zipExtension;
+
+    /**
      * Constructor
      */
     public function __construct()
     {
         $this->setProperties();
+        if (extension_loaded('zip')) {
+            $this->zipExtension = new ZipExtension();
+        }
     }
 
     /**
@@ -59,7 +68,7 @@ class ImportShp extends ImportPlugin
      *
      * @return void
      */
-    public function doImport(&$sql_data = array())
+    public function doImport(array &$sql_data = array())
     {
         global $db, $error, $finished,
                $import_file, $local_import_file, $message;
@@ -72,7 +81,7 @@ class ImportShp extends ImportPlugin
         // If the zip archive has more than one file,
         // get the correct content to the buffer from .shp file.
         if ($compression == 'application/zip'
-            && ZipExtension::getNumberOfFiles($import_file) > 1
+            && $this->zipExtension->getNumberOfFiles($import_file) > 1
         ) {
             if ($GLOBALS['import_handle']->openZip('/^.*\.shp$/i') === false) {
                 $message = Message::error(
@@ -91,14 +100,14 @@ class ImportShp extends ImportPlugin
             // If we can extract the zip archive to 'TempDir'
             // and use the files in it for import
             if ($compression == 'application/zip' && ! is_null($temp)) {
-                $dbf_file_name = ZipExtension::findFile(
+                $dbf_file_name = $this->zipExtension->findFile(
                     $import_file,
                     '/^.*\.dbf$/i'
                 );
                 // If the corresponding .dbf file is in the zip archive
                 if ($dbf_file_name) {
                     // Extract the .dbf file and point to it.
-                    $extracted = ZipExtension::extract(
+                    $extracted = $this->zipExtension->extract(
                         $import_file,
                         $dbf_file_name
                     );
@@ -250,12 +259,12 @@ class ImportShp extends ImportPlugin
 
         // Use data from shape file to chose best-fit MySQL types for each column
         $analyses = array();
-        $analyses[] = PMA_analyzeTable($tables[0]);
+        $analyses[] = Import::analyzeTable($tables[0]);
 
         $table_no = 0;
         $spatial_col = 0;
-        $analyses[$table_no][TYPES][$spatial_col] = GEOMETRY;
-        $analyses[$table_no][FORMATTEDSQL][$spatial_col] = true;
+        $analyses[$table_no][Import::TYPES][$spatial_col] = Import::GEOMETRY;
+        $analyses[$table_no][Import::FORMATTEDSQL][$spatial_col] = true;
 
         // Set database name to the currently selected one, if applicable
         if (strlen($db) > 0) {
@@ -268,7 +277,7 @@ class ImportShp extends ImportPlugin
 
         // Created and execute necessary SQL statements from data
         $null_param = null;
-        PMA_buildSQL($db_name, $tables, $analyses, $null_param, $options, $sql_data);
+        Import::buildSql($db_name, $tables, $analyses, $null_param, $options, $sql_data);
 
         unset($tables);
         unset($analyses);
@@ -277,7 +286,7 @@ class ImportShp extends ImportPlugin
         $error = false;
 
         // Commit any possible data in buffers
-        PMA_importRunQuery('', '', $sql_data);
+        Import::runQuery('', '', $sql_data);
     }
 
     /**
@@ -298,7 +307,7 @@ class ImportShp extends ImportPlugin
             if ($GLOBALS['finished']) {
                 $eof = true;
             } else {
-                $buffer .= PMA_importGetNextChunk();
+                $buffer .= Import::getNextChunk();
             }
         }
         $result = substr($buffer, 0, $length);

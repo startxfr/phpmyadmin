@@ -6,27 +6,26 @@
  * @package PhpMyAdmin
  */
 use PhpMyAdmin\Config\ConfigFile;
-use PhpMyAdmin\Config\FormDisplay;
+use PhpMyAdmin\Config\Forms\User\UserFormList;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\File;
 use PhpMyAdmin\Message;
 use PhpMyAdmin\Response;
-use PhpMyAdmin\Util;
-use PhpMyAdmin\Url;
 use PhpMyAdmin\Sanitize;
 use PhpMyAdmin\ThemeManager;
+use PhpMyAdmin\Url;
+use PhpMyAdmin\UserPreferences;
+use PhpMyAdmin\Util;
 
 /**
  * Gets some core libraries and displays a top message if required
  */
 require_once 'libraries/common.inc.php';
-require_once 'libraries/user_preferences.lib.php';
-require_once 'libraries/config/config_functions.lib.php';
-require_once 'libraries/config/messages.inc.php';
-require 'libraries/config/user_preferences.forms.php';
+
+$userPreferences = new UserPreferences();
 
 $cf = new ConfigFile($GLOBALS['PMA_Config']->base_settings);
-PMA_userprefsPageInit($cf);
+$userPreferences->pageInit($cf);
 $response = Response::getInstance();
 
 $error = '';
@@ -38,7 +37,7 @@ if (isset($_POST['submit_export'])
     $response->disable();
     $filename = 'phpMyAdmin-config-' . urlencode(Core::getenv('HTTP_HOST')) . '.json';
     Core::downloadHeader($filename, 'application/json');
-    $settings = PMA_loadUserprefs();
+    $settings = $userPreferences->load();
     echo json_encode($settings['config_data'], JSON_PRETTY_PRINT);
     exit;
 } elseif (isset($_POST['submit_export'])
@@ -49,20 +48,20 @@ if (isset($_POST['submit_export'])
     $response->disable();
     $filename = 'phpMyAdmin-config-' . urlencode(Core::getenv('HTTP_HOST')) . '.php';
     Core::downloadHeader($filename, 'application/php');
-    $settings = PMA_loadUserprefs();
-    echo '/* ' . _('phpMyAdmin configuration snippet') . " */\n\n";
-    echo '/* ' . _('Paste it to your config.inc.php') . " */\n\n";
+    $settings = $userPreferences->load();
+    echo '/* ' . __('phpMyAdmin configuration snippet') . " */\n\n";
+    echo '/* ' . __('Paste it to your config.inc.php') . " */\n\n";
     foreach ($settings['config_data'] as $key => $val) {
         echo '$cfg[\'' . str_replace('/', '\'][\'', $key) . '\'] = ';
         echo var_export($val, true) . ";\n";
     }
     exit;
-} else if (isset($_POST['submit_get_json'])) {
-    $settings = PMA_loadUserprefs();
+} elseif (isset($_POST['submit_get_json'])) {
+    $settings = $userPreferences->load();
     $response->addJSON('prefs', json_encode($settings['config_data']));
     $response->addJSON('mtime', $settings['mtime']);
     exit;
-} else if (isset($_POST['submit_import'])) {
+} elseif (isset($_POST['submit_import'])) {
     // load from JSON file
     $json = '';
     if (isset($_POST['import_type'])
@@ -96,12 +95,7 @@ if (isset($_POST['submit_export'])
     } else {
         // sanitize input values: treat them as though
         // they came from HTTP POST request
-        $form_display = new FormDisplay($cf);
-        foreach ($forms as $formset_id => $formset) {
-            foreach ($formset as $form_name => $form) {
-                $form_display->registerForm($formset_id . ': ' . $form_name, $form);
-            }
-        }
+        $form_display = new UserFormList($cf);
         $new_config = $cf->getFlatDefaultConfig();
         if (!empty($_POST['import_merge'])) {
             $new_config = array_merge($new_config, $cf->getConfigArray());
@@ -153,7 +147,7 @@ if (isset($_POST['submit_export'])
             exit;
         }
 
-        // check for ThemeDefault and fontsize
+        // check for ThemeDefault
         $params = array();
         $tmanager = ThemeManager::getInstance();
         if (isset($config['ThemeDefault'])
@@ -163,24 +157,14 @@ if (isset($_POST['submit_export'])
             $tmanager->setActiveTheme($config['ThemeDefault']);
             $tmanager->setThemeCookie();
         }
-        if (isset($config['fontsize'])
-            && $config['fontsize'] != $GLOBALS['PMA_Config']->get('fontsize')
-        ) {
-            $params['set_fontsize'] = $config['fontsize'];
-        }
         if (isset($config['lang'])
             && $config['lang'] != $GLOBALS['lang']
         ) {
             $params['lang'] = $config['lang'];
         }
-        if (isset($config['collation_connection'])
-            && $config['collation_connection'] != $GLOBALS['collation_connection']
-        ) {
-            $params['collation_connection'] = $config['collation_connection'];
-        }
 
         // save settings
-        $result = PMA_saveUserprefs($cf->getConfigArray());
+        $result = $userPreferences->save($cf->getConfigArray());
         if ($result === true) {
             if ($return_url) {
                 $query =  PhpMyAdmin\Util::splitURLQuery($return_url);
@@ -199,22 +183,19 @@ if (isset($_POST['submit_export'])
             }
             // reload config
             $GLOBALS['PMA_Config']->loadUserPreferences();
-            PMA_userprefsRedirect($return_url, $params);
+            $userPreferences->redirect($return_url, $params);
             exit;
         } else {
             $error = $result;
         }
     }
-} else if (isset($_POST['submit_clear'])) {
-    $result = PMA_saveUserprefs(array());
+} elseif (isset($_POST['submit_clear'])) {
+    $result = $userPreferences->save(array());
     if ($result === true) {
         $params = array();
-        if ($GLOBALS['PMA_Config']->get('fontsize') != '82%') {
-            $GLOBALS['PMA_Config']->removeCookie('pma_fontsize');
-        }
         $GLOBALS['PMA_Config']->removeCookie('pma_collaction_connection');
         $GLOBALS['PMA_Config']->removeCookie('pma_lang');
-        PMA_userprefsRedirect('prefs_manage.php', $params);
+        $userPreferences->redirect('prefs_manage.php', $params);
         exit;
     } else {
         $error = $result;

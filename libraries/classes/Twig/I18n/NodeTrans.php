@@ -7,17 +7,17 @@
  */
 namespace PhpMyAdmin\Twig\I18n;
 
-use Twig_Compiler;
-use Twig_Extensions_Node_Trans;
-use Twig_Node;
-use Twig_Node_Expression;
+use Twig\Compiler;
+use Twig\Extensions\Node\TransNode;
+use Twig\Node\Node;
+use Twig\Node\Expression\AbstractExpression;
 
 /**
  * Class NodeTrans
  *
  * @package PhpMyAdmin\Twig\I18n
  */
-class NodeTrans extends Twig_Extensions_Node_Trans
+class NodeTrans extends TransNode
 {
     /**
      * Constructor.
@@ -25,20 +25,20 @@ class NodeTrans extends Twig_Extensions_Node_Trans
      * The nodes are automatically made available as properties ($this->node).
      * The attributes are automatically made available as array items ($this['name']).
      *
-     * @param Twig_Node            $body    Body of node trans
-     * @param Twig_Node            $plural  Node plural
-     * @param Twig_Node_Expression $count   Node count
-     * @param Twig_Node            $context Node context
-     * @param Twig_Node            $notes   Node notes
-     * @param int                  $lineno  The line number
-     * @param string               $tag     The tag name associated with the Node
+     * @param Node               $body    Body of node trans
+     * @param Node               $plural  Node plural
+     * @param AbstractExpression $count   Node count
+     * @param Node               $context Node context
+     * @param Node               $notes   Node notes
+     * @param int                $lineno  The line number
+     * @param string             $tag     The tag name associated with the Node
      */
     public function __construct(
-        Twig_Node $body,
-        Twig_Node $plural = null,
-        Twig_Node_Expression $count = null,
-        Twig_Node $context = null,
-        Twig_Node $notes = null,
+        Node $body,
+        Node $plural = null,
+        AbstractExpression $count = null,
+        Node $context = null,
+        Node $notes = null,
         $lineno,
         $tag = null
     ) {
@@ -56,17 +56,17 @@ class NodeTrans extends Twig_Extensions_Node_Trans
             $nodes['notes'] = $notes;
         }
 
-        Twig_Node::__construct($nodes, array(), $lineno, $tag);
+        Node::__construct($nodes, array(), $lineno, $tag);
     }
 
     /**
      * Compiles the node to PHP.
      *
-     * @param Twig_Compiler $compiler Node compiler
+     * @param Compiler $compiler Node compiler
      *
      * @return void
      */
-    public function compile(Twig_Compiler $compiler)
+    public function compile(Compiler $compiler)
     {
         $compiler->addDebugInfo($this);
 
@@ -88,12 +88,12 @@ class NodeTrans extends Twig_Extensions_Node_Trans
 
             // line breaks are not allowed cause we want a single line comment
             $message = str_replace(array("\n", "\r"), ' ', $message);
-            $compiler->write("// notes: {$message}\n");
+            $compiler->write("// l10n: {$message}\n");
         }
 
         if ($vars) {
             $compiler
-                ->write('echo strtr('.$function.'(')
+                ->write('echo strtr(' . $function . '(')
                 ->subcompile($msg)
             ;
 
@@ -119,7 +119,7 @@ class NodeTrans extends Twig_Extensions_Node_Trans
                     ;
                 } else {
                     $compiler
-                        ->string('%'.$var->getAttribute('name').'%')
+                        ->string('%' . $var->getAttribute('name') . '%')
                         ->raw(' => ')
                         ->subcompile($var)
                         ->raw(', ')
@@ -129,7 +129,7 @@ class NodeTrans extends Twig_Extensions_Node_Trans
 
             $compiler->raw("));\n");
         } else {
-            $compiler->write('echo '.$function.'(');
+            $compiler->write('echo ' . $function . '(');
 
             if ($this->hasNode('context')) {
                 $context = trim($this->getNode('context')->getAttribute('data'));
@@ -162,8 +162,8 @@ class NodeTrans extends Twig_Extensions_Node_Trans
     {
         if ($hasMsgContext) {
             return $plural ? '_ngettext' : '_pgettext';
-        } else {
-            return $plural ? '_ngettext' : '_gettext';
         }
+
+        return $plural ? '_ngettext' : '_gettext';
     }
 }

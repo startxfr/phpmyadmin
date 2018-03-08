@@ -5,18 +5,68 @@
  *
  * @package PhpMyAdmin-test
  */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\Sql;
+use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use stdClass;
 
 /**
  * Tests for PhpMyAdmin\Sql
  *
  * @package PhpMyAdmin-test
  */
-class SqlTest extends PHPUnit_Framework_TestCase
+class SqlTest extends TestCase
 {
     /**
-     * Test Sql::getSqlWithLimitClause
+     * @var Sql
+     */
+    private $sql;
+
+    /**
+     * Setup for test cases
+     *
+     * @return void
+     */
+    protected function setUp()
+    {
+        $GLOBALS['server'] = 1;
+        $GLOBALS['db'] = 'db';
+        $GLOBALS['table'] = 'table';
+        $GLOBALS['cfg']['AllowThirdPartyFraming'] = false;
+        $GLOBALS['cfg']['SendErrorReports'] = 'ask';
+        $GLOBALS['cfg']['ServerDefault'] = 1;
+        $GLOBALS['cfg']['DefaultTabDatabase'] = 'structure';
+        $GLOBALS['cfg']['DefaultTabTable'] = 'browse';
+        $GLOBALS['cfg']['ShowDatabasesNavigationAsTree'] = true;
+        $GLOBALS['cfg']['NavigationTreeDefaultTabTable'] = 'structure';
+        $GLOBALS['cfg']['NavigationTreeDefaultTabTable2'] = '';
+        $GLOBALS['cfg']['LimitChars'] = 50;
+        $GLOBALS['cfg']['Confirm'] = true;
+        $GLOBALS['cfg']['LoginCookieValidity'] = 1440;
+        $GLOBALS['PMA_PHP_SELF'] = 'index.php';
+
+        $this->sql = new Sql();
+    }
+
+    /**
+     * Call protected functions by setting visibility to public.
+     *
+     * @param string         $name   method name
+     * @param array          $params parameters for the invocation
+     *
+     * @return mixed the output from the protected method.
+     */
+    private function callProtectedMethod($name, array $params = [])
+    {
+        $method = new ReflectionMethod(Sql::class, $name);
+        $method->setAccessible(true);
+        return $method->invokeArgs($this->sql, $params);
+    }
+
+    /**
+     * Test for getSqlWithLimitClause
      *
      * @return void
      */
@@ -25,19 +75,18 @@ class SqlTest extends PHPUnit_Framework_TestCase
         // Test environment.
         $GLOBALS['_SESSION']['tmpval']['pos'] = 1;
         $GLOBALS['_SESSION']['tmpval']['max_rows'] = 2;
-        $GLOBALS['db'] = 'db';
 
-        $analyzed_sql_results = Sql::parseAndAnalyze(
+        $analyzed_sql_results = $this->sql->parseAndAnalyze(
             'SELECT * FROM test LIMIT 0, 10'
         );
         $this->assertEquals(
             'SELECT * FROM test LIMIT 1, 2 ',
-            Sql::getSqlWithLimitClause($analyzed_sql_results)
+            $this->callProtectedMethod('getSqlWithLimitClause', [&$analyzed_sql_results])
         );
     }
 
     /**
-     * Test Sql::isRememberSortingOrder
+     * Test for isRememberSortingOrder
      *
      * @return void
      */
@@ -45,41 +94,40 @@ class SqlTest extends PHPUnit_Framework_TestCase
     {
         // Test environment.
         $GLOBALS['cfg']['RememberSorting'] = true;
-        $GLOBALS['db'] = 'db';
 
         $this->assertTrue(
-            Sql::isRememberSortingOrder(
-                Sql::parseAndAnalyze('SELECT * FROM tbl')
-            )
+            $this->callProtectedMethod('isRememberSortingOrder', [
+                $this->sql->parseAndAnalyze('SELECT * FROM tbl')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isRememberSortingOrder(
-                Sql::parseAndAnalyze('SELECT col FROM tbl')
-            )
+            $this->callProtectedMethod('isRememberSortingOrder', [
+                $this->sql->parseAndAnalyze('SELECT col FROM tbl')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isRememberSortingOrder(
-                Sql::parseAndAnalyze('SELECT 1')
-            )
+            $this->callProtectedMethod('isRememberSortingOrder', [
+                $this->sql->parseAndAnalyze('SELECT 1')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isRememberSortingOrder(
-                Sql::parseAndAnalyze('SELECT col1, col2 FROM tbl')
-            )
+            $this->callProtectedMethod('isRememberSortingOrder', [
+                $this->sql->parseAndAnalyze('SELECT col1, col2 FROM tbl')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isRememberSortingOrder(
-                Sql::parseAndAnalyze('SELECT COUNT(*) from tbl')
-            )
+            $this->callProtectedMethod('isRememberSortingOrder', [
+                $this->sql->parseAndAnalyze('SELECT COUNT(*) from tbl')
+            ])
         );
     }
 
     /**
-     * Test Sql::isAppendLimitClause
+     * Test for isAppendLimitClause
      *
      * @return void
      */
@@ -87,23 +135,22 @@ class SqlTest extends PHPUnit_Framework_TestCase
     {
         // Test environment.
         $GLOBALS['_SESSION']['tmpval']['max_rows'] = 10;
-        $GLOBALS['db'] = 'db';
 
         $this->assertTrue(
-            Sql::isAppendLimitClause(
-                Sql::parseAndAnalyze('SELECT * FROM tbl')
-            )
+            $this->callProtectedMethod('isAppendLimitClause', [
+                $this->sql->parseAndAnalyze('SELECT * FROM tbl')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isAppendLimitClause(
-                Sql::parseAndAnalyze('SELECT * from tbl LIMIT 0, 10')
-            )
+            $this->callProtectedMethod('isAppendLimitClause', [
+                $this->sql->parseAndAnalyze('SELECT * from tbl LIMIT 0, 10')
+            ])
         );
     }
 
     /**
-     * Test Sql::isJustBrowsing
+     * Test for isJustBrowsing
      *
      * @return void
      */
@@ -111,58 +158,57 @@ class SqlTest extends PHPUnit_Framework_TestCase
     {
         // Test environment.
         $GLOBALS['_SESSION']['tmpval']['max_rows'] = 10;
-        $GLOBALS['db'] = 'db';
 
         $this->assertTrue(
-            Sql::isJustBrowsing(
-                Sql::parseAndAnalyze('SELECT * FROM db.tbl'),
+            $this->sql->isJustBrowsing(
+                $this->sql->parseAndAnalyze('SELECT * FROM db.tbl'),
                 null
             )
         );
 
         $this->assertTrue(
-            Sql::isJustBrowsing(
-                Sql::parseAndAnalyze('SELECT * FROM tbl WHERE 1'),
+            $this->sql->isJustBrowsing(
+                $this->sql->parseAndAnalyze('SELECT * FROM tbl WHERE 1'),
                 null
             )
         );
 
         $this->assertFalse(
-            Sql::isJustBrowsing(
-                Sql::parseAndAnalyze('SELECT * from tbl1, tbl2 LIMIT 0, 10'),
+            $this->sql->isJustBrowsing(
+                $this->sql->parseAndAnalyze('SELECT * from tbl1, tbl2 LIMIT 0, 10'),
                 null
             )
         );
     }
 
     /**
-     * Test Sql::isDeleteTransformationInfo
+     * Test for isDeleteTransformationInfo
      *
      * @return void
      */
     public function testIsDeleteTransformationInfo()
     {
         $this->assertTrue(
-            Sql::isDeleteTransformationInfo(
-                Sql::parseAndAnalyze('ALTER TABLE tbl DROP COLUMN col')
-            )
+            $this->callProtectedMethod('isDeleteTransformationInfo', [
+                $this->sql->parseAndAnalyze('ALTER TABLE tbl DROP COLUMN col')
+            ])
         );
 
         $this->assertTrue(
-            Sql::isDeleteTransformationInfo(
-                Sql::parseAndAnalyze('DROP TABLE tbl')
-            )
+            $this->callProtectedMethod('isDeleteTransformationInfo', [
+                $this->sql->parseAndAnalyze('DROP TABLE tbl')
+            ])
         );
 
         $this->assertFalse(
-            Sql::isDeleteTransformationInfo(
-                Sql::parseAndAnalyze('SELECT * from tbl')
-            )
+            $this->callProtectedMethod('isDeleteTransformationInfo', [
+                $this->sql->parseAndAnalyze('SELECT * from tbl')
+            ])
         );
     }
 
     /**
-     * Test Sql::hasNoRightsToDropDatabase
+     * Test for hasNoRightsToDropDatabase
      *
      * @return void
      */
@@ -170,8 +216,8 @@ class SqlTest extends PHPUnit_Framework_TestCase
     {
         $this->assertEquals(
             true,
-            Sql::hasNoRightsToDropDatabase(
-                Sql::parseAndAnalyze('DROP DATABASE db'),
+            $this->sql->hasNoRightsToDropDatabase(
+                $this->sql->parseAndAnalyze('DROP DATABASE db'),
                 false,
                 false
             )
@@ -179,8 +225,8 @@ class SqlTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(
             false,
-            Sql::hasNoRightsToDropDatabase(
-                Sql::parseAndAnalyze('DROP TABLE tbl'),
+            $this->sql->hasNoRightsToDropDatabase(
+                $this->sql->parseAndAnalyze('DROP TABLE tbl'),
                 false,
                 false
             )
@@ -188,8 +234,8 @@ class SqlTest extends PHPUnit_Framework_TestCase
 
         $this->assertEquals(
             false,
-            Sql::hasNoRightsToDropDatabase(
-                Sql::parseAndAnalyze('SELECT * from tbl'),
+            $this->sql->hasNoRightsToDropDatabase(
+                $this->sql->parseAndAnalyze('SELECT * from tbl'),
                 false,
                 false
             )
@@ -211,14 +257,20 @@ class SqlTest extends PHPUnit_Framework_TestCase
         $col3->table = 'table3';
 
         $fields_meta = array($col1, $col2, $col3);
-        $this->assertFalse(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertFalse(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
 
         // should not matter on where the odd column occurs
         $fields_meta = array($col2, $col3, $col1);
-        $this->assertFalse(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertFalse(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
 
         $fields_meta = array($col3, $col1, $col2);
-        $this->assertFalse(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertFalse(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
     }
 
     /**
@@ -236,7 +288,9 @@ class SqlTest extends PHPUnit_Framework_TestCase
         $col3->table = 'table1';
         $fields_meta = array($col1, $col2, $col3);
 
-        $this->assertTrue(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertTrue(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
     }
 
     /**
@@ -255,14 +309,20 @@ class SqlTest extends PHPUnit_Framework_TestCase
         $col3->table = 'table1';
 
         $fields_meta = array($col1, $col2, $col3);
-        $this->assertTrue(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertTrue(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
 
         // should not matter on where the function column occurs
         $fields_meta = array($col2, $col3, $col1);
-        $this->assertTrue(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertTrue(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
 
         $fields_meta = array($col3, $col1, $col2);
-        $this->assertTrue(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertTrue(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
     }
 
     /**
@@ -281,6 +341,8 @@ class SqlTest extends PHPUnit_Framework_TestCase
         $col3->table = '';
         $fields_meta = array($col1, $col2, $col3);
 
-        $this->assertFalse(Sql::resultSetHasJustOneTable($fields_meta));
+        $this->assertFalse(
+            $this->callProtectedMethod('resultSetHasJustOneTable', [$fields_meta])
+        );
     }
 }

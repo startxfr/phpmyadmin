@@ -48,7 +48,7 @@ abstract class DateFormatTransformationsPlugin extends TransformationsPlugin
      *
      * @return string
      */
-    public function applyTransformation($buffer, $options = array(), $meta = '')
+    public function applyTransformation($buffer, array $options = array(), $meta = '')
     {
         // possibly use a global transform and feed it with special options
         $cfg = $GLOBALS['cfg'];
@@ -142,9 +142,9 @@ abstract class DateFormatTransformationsPlugin extends TransformationsPlugin
             }
             return '<dfn onclick="alert(\'' . Sanitize::jsFormat($source, false) . '\');" title="'
                 . htmlspecialchars($source) . '">' . htmlspecialchars($text) . '</dfn>';
-        } else {
-            return htmlspecialchars($buffer);
         }
+
+        return htmlspecialchars($buffer);
     }
 
     /* ~~~~~~~~~~~~~~~~~~~~ Getters and Setters ~~~~~~~~~~~~~~~~~~~~ */

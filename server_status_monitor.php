@@ -6,14 +6,13 @@
  * @package PhpMyAdmin
  */
 
-use PhpMyAdmin\ServerStatusData;
+use PhpMyAdmin\Server\Status\Monitor;
+use PhpMyAdmin\Server\Status\Data;
 use PhpMyAdmin\Response;
 
 require_once 'libraries/common.inc.php';
 require_once 'libraries/server_common.inc.php';
-require_once 'libraries/server_status_monitor.lib.php';
 require_once 'libraries/replication.inc.php';
-require_once 'libraries/replication_gui.lib.php';
 
 $response = Response::getInstance();
 
@@ -28,7 +27,7 @@ if ($response->isAjax()) {
     if (isset($_REQUEST['chart_data'])) {
         switch($_REQUEST['type']) {
         case 'chartgrid': // Data for the monitor
-            $ret = PMA_getJsonForChartingData();
+            $ret = Monitor::getJsonForChartingData();
             $response->addJSON('message', $ret);
             exit;
         }
@@ -40,26 +39,26 @@ if ($response->isAjax()) {
         $end = intval($_REQUEST['time_end']);
 
         if ($_REQUEST['type'] == 'slow') {
-            $return = PMA_getJsonForLogDataTypeSlow($start, $end);
+            $return = Monitor::getJsonForLogDataTypeSlow($start, $end);
             $response->addJSON('message', $return);
             exit;
         }
 
         if ($_REQUEST['type'] == 'general') {
-            $return = PMA_getJsonForLogDataTypeGeneral($start, $end);
+            $return = Monitor::getJsonForLogDataTypeGeneral($start, $end);
             $response->addJSON('message', $return);
             exit;
         }
     }
 
     if (isset($_REQUEST['logging_vars'])) {
-        $loggingVars = PMA_getJsonForLoggingVars();
+        $loggingVars = Monitor::getJsonForLoggingVars();
         $response->addJSON('message', $loggingVars);
         exit;
     }
 
     if (isset($_REQUEST['query_analyzer'])) {
-        $return = PMA_getJsonForQueryAnalyzer();
+        $return = Monitor::getJsonForQueryAnalyzer();
         $response->addJSON('message', $return);
         exit;
     }
@@ -72,7 +71,6 @@ $header   = $response->getHeader();
 $scripts  = $header->getScripts();
 $scripts->addFile('vendor/jquery/jquery.tablesorter.js');
 $scripts->addFile('vendor/jquery/jquery.sortableTable.js');
-$scripts->addFile('vendor/jquery/jquery-ui-timepicker-addon.js');
 // for charting
 $scripts->addFile('vendor/jqplot/jquery.jqplot.js');
 $scripts->addFile('vendor/jqplot/plugins/jqplot.pieRenderer.js');
@@ -91,14 +89,14 @@ $scripts->addFile('server_status_sorter.js');
 /**
  * start output
  */
-$ServerStatusData = new ServerStatusData();
+$serverStatusData = new Data();
 
 /**
  * Output
  */
 $response->addHTML('<div>');
-$response->addHTML($ServerStatusData->getMenuHtml());
-$response->addHTML(PMA_getHtmlForMonitor($ServerStatusData));
-$response->addHTML(PMA_getHtmlForClientSideDataAndLinks($ServerStatusData));
+$response->addHTML($serverStatusData->getMenuHtml());
+$response->addHTML(Monitor::getHtmlForMonitor($serverStatusData));
+$response->addHTML(Monitor::getHtmlForClientSideDataAndLinks($serverStatusData));
 $response->addHTML('</div>');
 exit;

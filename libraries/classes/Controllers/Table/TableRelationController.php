@@ -11,6 +11,7 @@ use PhpMyAdmin\Controllers\TableController;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\DatabaseInterface;
 use PhpMyAdmin\Index;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Table;
 use PhpMyAdmin\Template;
 use PhpMyAdmin\Util;
@@ -38,11 +39,6 @@ class TableRelationController extends TableController
     protected $existrel;
 
     /**
-     * @var string $disp
-     */
-    protected $disp;
-
-    /**
      * @var string $tbl_storage_engine
      */
     protected $tbl_storage_engine;
@@ -60,25 +56,32 @@ class TableRelationController extends TableController
     /**
      * Constructor
      *
-     * @param array  $options_array      Options
-     * @param array  $cfgRelation        Config relation
-     * @param string $tbl_storage_engine Table storage engine
-     * @param array  $existrel           Relations
-     * @param array  $existrel_foreign   External relations
-     * @param string $disp               Display
-     * @param string $upd_query          Update query
+     * @param array|null $options_array      Options
+     * @param array|null $cfgRelation        Config relation
+     * @param string     $tbl_storage_engine Table storage engine
+     * @param array|null $existrel           Relations
+     * @param array|null $existrel_foreign   External relations
+     * @param string     $upd_query          Update query
      */
-    public function __construct($options_array, $cfgRelation, $tbl_storage_engine,
-        $existrel, $existrel_foreign, $disp, $upd_query
+    public function __construct(
+        $response,
+        $dbi,
+        $db,
+        $table,
+        $options_array,
+        $cfgRelation,
+        $tbl_storage_engine,
+        $existrel,
+        $existrel_foreign,
+        $upd_query
     ) {
-        parent::__construct();
+        parent::__construct($response, $dbi, $db, $table);
 
         $this->options_array = $options_array;
         $this->cfgRelation = $cfgRelation;
         $this->tbl_storage_engine = $tbl_storage_engine;
         $this->existrel = $existrel;
         $this->existrel_foreign = $existrel_foreign;
-        $this->disp = $disp;
         $this->upd_query = $upd_query;
     }
 
@@ -130,20 +133,16 @@ class TableRelationController extends TableController
 
         // If we did an update, refresh our data
         if (isset($_POST['destination_db']) && $this->cfgRelation['relwork']) {
-            $this->existrel = PMA_getForeigners(
+            $this->existrel = Relation::getForeigners(
                 $this->db, $this->table, '', 'internal'
             );
         }
         if (isset($_POST['destination_foreign_db'])
             && Util::isForeignKeySupported($this->tbl_storage_engine)
         ) {
-            $this->existrel_foreign = PMA_getForeigners(
+            $this->existrel_foreign = Relation::getForeigners(
                 $this->db, $this->table, '', 'foreign'
             );
-        }
-
-        if ($this->cfgRelation['displaywork']) {
-            $this->disp = PMA_getDisplayField($this->db, $this->table);
         }
 
         // display secondary level tabs if necessary
@@ -157,7 +156,7 @@ class TableRelationController extends TableController
                         'table' => $GLOBALS['table']
                     ),
                     'is_foreign_key_supported' => Util::isForeignKeySupported($engine),
-                    'cfg_relation' => PMA_getRelationsParam(),
+                    'cfg_relation' => Relation::getRelationsParam(),
                 )
             )
         );
@@ -171,21 +170,36 @@ class TableRelationController extends TableController
         // in mysqli
         $columns = $this->dbi->getColumns($this->db, $this->table);
 
+        $column_array = array();
+        $column_array[''] = '';
+        foreach ($columns as $column) {
+            if (strtoupper($this->tbl_storage_engine) == 'INNODB'
+                || ! empty($column['Key'])
+            ) {
+                $column_array[$column['Field']] = $column['Field'];
+            }
+        }
+        if ($GLOBALS['cfg']['NaturalOrder']) {
+            uksort($column_array, 'strnatcasecmp');
+        }
+
         // common form
         $this->response->addHTML(
-            Template::get('table/relation/common_form')->render(
-                array(
-                    'db' => $this->db,
-                    'table' => $this->table,
-                    'columns' => $columns,
-                    'cfgRelation' => $this->cfgRelation,
-                    'tbl_storage_engine' => $this->tbl_storage_engine,
-                    'existrel' => isset($this->existrel) ? $this->existrel : array(),
-                    'existrel_foreign' => isset($this->existrel_foreign)
-                        ? $this->existrel_foreign['foreign_keys_data'] : array(),
-                    'options_array' => $this->options_array
-                )
-            )
+            Template::get('table/relation/common_form')->render([
+                'db' => $this->db,
+                'table' => $this->table,
+                'cfg_relation' => $this->cfgRelation,
+                'tbl_storage_engine' => $this->tbl_storage_engine,
+                'existrel' => isset($this->existrel) ? $this->existrel : array(),
+                'existrel_foreign' => isset($this->existrel_foreign)
+                    ? $this->existrel_foreign['foreign_keys_data'] : array(),
+                'options_array' => $this->options_array,
+                'column_array' => $column_array,
+                'save_row' => array_values($columns),
+                'url_params' => $GLOBALS['url_params'],
+                'databases' => $GLOBALS['dblist']->databases,
+                'dbi' => $GLOBALS['dbi'],
+            ])
         );
 
         if (Util::isForeignKeySupported($this->tbl_storage_engine)) {
@@ -202,7 +216,7 @@ class TableRelationController extends TableController
     public function updateForDisplayField()
     {
         if ($this->upd_query->updateDisplayField(
-            $this->disp, $_POST['display_field'], $this->cfgRelation
+            $_POST['display_field'], $this->cfgRelation
         )
         ) {
             $this->response->addHTML(
@@ -335,7 +349,7 @@ class TableRelationController extends TableController
                 . Util::backquote($_REQUEST['foreignDb']);
             $tables_rs = $this->dbi->query(
                 $query,
-                null,
+                DatabaseInterface::CONNECT_USER,
                 DatabaseInterface::QUERY_STORE
             );
 
@@ -351,7 +365,7 @@ class TableRelationController extends TableController
                 . Util::backquote($_REQUEST['foreignDb']);
             $tables_rs = $this->dbi->query(
                 $query,
-                null,
+                DatabaseInterface::CONNECT_USER,
                 DatabaseInterface::QUERY_STORE
             );
             while ($row = $this->dbi->fetchArray($tables_rs)) {

@@ -8,7 +8,7 @@
  */
 
 // unplanned execution path
-if (! defined('PMA_MINIMUM_COMMON') && ! defined('TESTSUITE')) {
+if (! defined('PHPMYADMIN') && ! defined('TESTSUITE')) {
     exit();
 }
 ?>
@@ -57,6 +57,10 @@ body#loginform {
 
 .all85{
     width: 85%;
+}
+
+.auth_config_tbl{
+    margin: 0 auto;
 }
 
 <?php if (! empty($GLOBALS['cfg']['FontFamilyFixed'])) { ?>
@@ -270,13 +274,17 @@ button.mult_submit {
 }
 
 /* odd items 1,3,5,7,... */
-table tr:nth-child(odd) {
-        background: <?php echo $GLOBALS['cfg']['BgOne']; ?>;
+table tr:nth-child(odd),
+#table_index tbody:nth-of-type(odd) tr,
+#table_index tbody:nth-of-type(odd) th {
+    background: <?php echo $GLOBALS['cfg']['BgOne']; ?>;
 }
 
 /* even items 2,4,6,8,... */
-table tr:nth-child(even) {
-        background: <?php echo $GLOBALS['cfg']['BgTwo']; ?>;
+table tr:nth-child(even),
+#table_index tbody:nth-of-type(even) tr,
+#table_index tbody:nth-of-type(even) th {
+    background: <?php echo $GLOBALS['cfg']['BgTwo']; ?>;
 }
 
 table tr th,
@@ -301,6 +309,8 @@ table tr:not(.nopointer):hover,
 }
 
 /* hovered table rows */
+#table_index tbody:hover tr,
+#table_index tbody:hover th,
 table tr.hover:not(.nopointer) th {
     background:   <?php echo $GLOBALS['cfg']['BrowsePointerBackground']; ?>;
     color:   <?php echo $GLOBALS['cfg']['BrowsePointerColor']; ?>;
@@ -388,8 +398,11 @@ img.lightbulb {
 
 /* leave some space between icons and text */
 .icon {
+    image-rendering: pixelated;
     vertical-align:     middle;
     margin-<?php echo $left; ?>:        0.3em;
+    background-repeat: no-repeat;
+    background-position: center;
 }
 
 /* no extra space in table cells */
@@ -619,6 +632,36 @@ form.login label {
 
 .column_attribute {
     font-size: 70%;
+}
+
+.cfg_dbg_demo{
+    margin: 0.5em 1em 0.5em 1em;
+}
+
+.central_columns_navigation{
+    padding:1.5% 0em !important;
+}
+
+.central_columns_add_column{
+    display:inline-block;
+    margin-left:1%;
+    max-width:50%
+}
+
+.message_errors_found{
+    margin-top: 20px;
+}
+
+.font_weight_bold{
+    font-weight: bold;
+}
+
+.color_gray{
+    color: gray;
+}
+
+.pma_sliding_message{
+    display: inline-block;
 }
 
 /******************************************************************************/
@@ -1101,6 +1144,15 @@ div#logTable table {
 
 /* end serverstatus */
 
+#sectionlinks {
+    margin-bottom: 15px;
+    padding: 10px;
+    border: 1px solid #CCC;
+}
+#sectionlinks a {
+    margin-<?php echo $right; ?>: 7px;
+}
+
 /* server variables */
 #serverVariables {
     width: 100%;
@@ -1119,12 +1171,8 @@ div#logTable table {
     padding: 0.5em;
     min-height: 18px;
 }
-#serverVariables .var-action {
-    width: 15%;
-}
 #serverVariables .var-name {
     font-weight: bold;
-    width: 65%;
 }
 #serverVariables .var-name.session {
     font-weight: normal;
@@ -1132,7 +1180,6 @@ div#logTable table {
 }
 #serverVariables .var-value {
     text-align: <?php echo $right; ?>;
-    width: 20%;
     float: <?php echo $right; ?>;
 }
 
@@ -1361,6 +1408,10 @@ div.sqlvalidate  {
     background:         <?php echo $GLOBALS['cfg']['BgOne']; ?>;
 }
 
+.result_query div.sqlOuter {
+    text-align: <?php echo $left; ?>;
+}
+
 #PMA_slidingMessage code.sql {
     border:             <?php echo $GLOBALS['cfg']['MainColor']; ?> solid 1px;
     border-top:         0;
@@ -1535,6 +1586,10 @@ select.invalid_value,
     vertical-align: middle;
 }
 
+.exportoptions h2 {
+    word-wrap: break-word;
+}
+
 .exportoptions h3, .importoptions h3 {
     border-bottom: 1px #999999 solid;
     font-size: 110%;
@@ -1676,7 +1731,7 @@ input#input_import_file {
 /**
  * Indexes
  */
-#index_frm .index_info input,
+#index_frm .index_info input[type="text"],
 #index_frm .index_info select {
     width: 100%;
     box-sizing:         border-box;
@@ -1999,9 +2054,10 @@ fieldset .disabled-field td {
 .toggleButton .container {
     position: absolute;
 }
-.toggleButton .container td {
+.toggleButton .container td,
+.toggleButton .container tr {
     background-image: none;
-    background: none;
+    background: none !important;
 }
 .toggleButton .toggleOn {
     color: #fff;
@@ -2057,6 +2113,13 @@ fieldset .disabled-field td {
     border: 1px solid #aaa;
     float: <?php echo $right; ?>;
     overflow: hidden;
+    width: 450px;
+    height: 300px;
+}
+
+#openlayersmap{
+    width: 450px;
+    height: 300px;
 }
 
 .placeholderDrag {
@@ -2360,6 +2423,10 @@ body .ui-widget {
 
 .ui-dialog fieldset legend a {
     color: #0000FF;
+}
+
+.ui-draggable {
+    z-index: 801;
 }
 
 /* jqPlot */
@@ -3262,6 +3329,10 @@ body .ui-dialog .ui-button-text-only .ui-button-text {
     display: none;
 }
 
+.responsivetable {
+    overflow-x: auto;
+}
+
 @media only screen and (max-width: 768px) {
     /* For mobile phones: */
     #main_pane_left {
@@ -3332,6 +3403,10 @@ body .ui-dialog .ui-button-text-only .ui-button-text {
         margin-top: 60px;
     }
 
+    #table_columns .tablesorter {
+        min-width: 100%;
+    }
+
     .doubleFieldset fieldset {
         width: 98%;
     }
@@ -3349,4 +3424,10 @@ body .ui-dialog .ui-button-text-only .ui-button-text {
     #serverinfo .item {
         margin: 4px;
     }
+}
+
+/* templates/database/designer */
+/* side menu */
+#name-panel {
+    overflow:hidden;
 }

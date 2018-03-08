@@ -8,7 +8,7 @@
 namespace PhpMyAdmin;
 
 use PhpMyAdmin\Util;
-use stdClass;
+use PhpMyAdmin\Utils\HttpRequest;
 
 /**
  * Responsible for retrieving version information and notifiying about latest version
@@ -39,7 +39,8 @@ class VersionInformation
         } else {
             $save = true;
             $file = 'https://www.phpmyadmin.net/home_page/version.json';
-            $response = Util::httpRequest($file, "GET");
+            $httpRequest = new HttpRequest();
+            $response = $httpRequest->create($file, 'GET');
         }
         $response = $response ? $response : '{}';
         /* Parse response */
@@ -136,7 +137,7 @@ class VersionInformation
      *
      * @return array containing the version and date of latest compatible version
      */
-    public function getLatestCompatibleVersion($releases)
+    public function getLatestCompatibleVersion(array $releases)
     {
         foreach ($releases as $release) {
             $phpVersions = $release->php_versions;

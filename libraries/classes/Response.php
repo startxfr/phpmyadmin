@@ -294,7 +294,7 @@ class Response
 
         if (! isset($this->_JSON['message'])) {
             $this->_JSON['message'] = $this->_getDisplay();
-        } else if ($this->_JSON['message'] instanceof Message) {
+        } elseif ($this->_JSON['message'] instanceof Message) {
             $this->_JSON['message'] = $this->_JSON['message']->getDisplay();
         }
 
@@ -544,5 +544,29 @@ class Response
         if (!defined('TESTSUITE')) {
             exit;
         }
+    }
+
+    /**
+     * Configures response for the login page
+     *
+     * @return bool Whether caller should exit
+     */
+    public function loginPage()
+    {
+        /* Handle AJAX redirection */
+        if ($this->isAjax()) {
+            $this->setRequestStatus(false);
+            // redirect_flag redirects to the login page
+            $this->addJSON('redirect_flag', '1');
+            return true;
+        }
+
+        $this->getFooter()->setMinimal();
+        $header = $this->getHeader();
+        $header->setBodyId('loginform');
+        $header->setTitle('phpMyAdmin');
+        $header->disableMenuAndConsole();
+        $header->disableWarnings();
+        return false;
     }
 }

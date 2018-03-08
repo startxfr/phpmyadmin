@@ -25,6 +25,61 @@ use PhpMyAdmin\Util;
 class Core
 {
     /**
+     * the whitelist for goto parameter
+     * @static array $goto_whitelist
+     */
+    public static $goto_whitelist = array(
+        'db_datadict.php',
+        'db_sql.php',
+        'db_events.php',
+        'db_export.php',
+        'db_importdocsql.php',
+        'db_multi_table_query.php',
+        'db_structure.php',
+        'db_import.php',
+        'db_operations.php',
+        'db_search.php',
+        'db_routines.php',
+        'export.php',
+        'import.php',
+        'index.php',
+        'pdf_pages.php',
+        'pdf_schema.php',
+        'server_binlog.php',
+        'server_collations.php',
+        'server_databases.php',
+        'server_engines.php',
+        'server_export.php',
+        'server_import.php',
+        'server_privileges.php',
+        'server_sql.php',
+        'server_status.php',
+        'server_status_advisor.php',
+        'server_status_monitor.php',
+        'server_status_queries.php',
+        'server_status_variables.php',
+        'server_variables.php',
+        'sql.php',
+        'tbl_addfield.php',
+        'tbl_change.php',
+        'tbl_create.php',
+        'tbl_import.php',
+        'tbl_indexes.php',
+        'tbl_sql.php',
+        'tbl_export.php',
+        'tbl_operations.php',
+        'tbl_structure.php',
+        'tbl_relation.php',
+        'tbl_replace.php',
+        'tbl_row_action.php',
+        'tbl_select.php',
+        'tbl_zoom_select.php',
+        'transformation_overview.php',
+        'transformation_wrapper.php',
+        'user_password.php',
+    );
+
+    /**
      * checks given $var and returns it if valid, or $default of not valid
      * given $var is also checked for type being 'similar' as $default
      * or against any other type if $type is provided
@@ -32,8 +87,8 @@ class Core
      * <code>
      * // $_REQUEST['db'] not set
      * echo Core::ifSetOr($_REQUEST['db'], ''); // ''
-     * // $_REQUEST['sql_query'] not set
-     * echo Core::ifSetOr($_REQUEST['sql_query']); // null
+     * // $_POST['sql_query'] not set
+     * echo Core::ifSetOr($_POST['sql_query']); // null
      * // $cfg['EnableFoo'] not set
      * echo Core::ifSetOr($cfg['EnableFoo'], false, 'boolean'); // false
      * echo Core::ifSetOr($cfg['EnableFoo']); // null
@@ -178,11 +233,7 @@ class Core
             return is_numeric($var);
         }
 
-        if (gettype($var) === $type) {
-            return true;
-        }
-
-        return false;
+        return gettype($var) === $type;
     }
 
     /**
@@ -227,13 +278,17 @@ class Core
          * Avoid using Response class as config does not have to be loaded yet
          * (this can happen on early fatal error)
          */
-        if (! empty($_REQUEST['ajax_request'])) {
+        if (!is_null($GLOBALS['dbi']) && isset($GLOBALS['PMA_Config']) && $GLOBALS['PMA_Config']->get('is_setup') === false && Response::getInstance()->isAjax()) {
+            $response = Response::getInstance();
+            $response->setRequestStatus(false);
+            $response->addJSON('message', Message::error($error_message));
+        } elseif (! empty($_REQUEST['ajax_request'])) {
             // Generate JSON manually
-            PMA_headerJSON();
+            self::headerJSON();
             echo json_encode(
                 array(
                     'success' => false,
-                    'error' => Message::error($error_message)->getDisplay(),
+                    'message' => Message::error($error_message)->getDisplay(),
                 )
             );
         } else {
@@ -327,7 +382,8 @@ class Core
     {
         $tables = $GLOBALS['dbi']->tryQuery(
             'SHOW TABLES FROM ' . Util::backquote($db) . ';',
-            null, DatabaseInterface::QUERY_STORE
+            DatabaseInterface::CONNECT_USER,
+            DatabaseInterface::QUERY_STORE
         );
         if ($tables) {
             $num_tables = $GLOBALS['dbi']->numRows($tables);
@@ -384,8 +440,11 @@ class Core
      *
      * @return boolean whether $page is valid or not (in $whitelist or not)
      */
-    public static function checkPageValidity(&$page, $whitelist)
+    public static function checkPageValidity(&$page, array $whitelist = [])
     {
+        if (empty($whitelist)) {
+            $whitelist = self::$goto_whitelist;
+        }
         if (! isset($page) || !is_string($page)) {
             return false;
         }
@@ -588,7 +647,7 @@ class Core
      *
      * @return mixed    array element or $default
      */
-    public static function arrayRead($path, $array, $default = null)
+    public static function arrayRead($path, array $array, $default = null)
     {
         $keys = explode('/', $path);
         $value =& $array;
@@ -610,7 +669,7 @@ class Core
      *
      * @return void
      */
-    public static function arrayWrite($path, &$array, $value)
+    public static function arrayWrite($path, array &$array, $value)
     {
         $keys = explode('/', $path);
         $last_key = array_pop($keys);
@@ -632,7 +691,7 @@ class Core
      *
      * @return void
      */
-    public static function arrayRemove($path, &$array)
+    public static function arrayRemove($path, array &$array)
     {
         $keys = explode('/', $path);
         $keys_last = array_pop($keys);
@@ -688,7 +747,7 @@ class Core
         parse_str($arr["query"], $vars);
         $query = http_build_query(array("url" => $vars["url"]));
 
-        if ($GLOBALS['PMA_Config']->get('is_setup')) {
+        if (!is_null($GLOBALS['PMA_Config']) && $GLOBALS['PMA_Config']->get('is_setup')) {
             $url = '../url.php?' . $query;
         } else {
             $url = './url.php?' . $query;
@@ -737,8 +796,6 @@ class Core
             /* php.net domains */
             'php.net',
             'secure.php.net',
-            /* sourceforge.net domain */
-            'sourceforge.net',
             /* Github domains*/
             'github.com','www.github.com',
             /* Percona domains */
@@ -746,11 +803,8 @@ class Core
             /* Following are doubtful ones. */
             'mysqldatabaseadministration.blogspot.com',
         );
-        if (in_array($domain, $domainWhiteList)) {
-            return true;
-        }
 
-        return false;
+        return in_array($domain, $domainWhiteList);
     }
 
     /**
@@ -824,7 +878,7 @@ class Core
      *
      * @return void
      */
-    public static function setPostAsGlobal($post_patterns)
+    public static function setPostAsGlobal(array $post_patterns)
     {
         foreach (array_keys($_POST) as $post_key) {
             foreach ($post_patterns as $one_post_pattern) {
@@ -890,7 +944,7 @@ class Core
             if ($part !== '..') {
                 // cool, we found a new part
                 array_push($path, $part);
-            } else if (count($path) > 0) {
+            } elseif (count($path) > 0) {
                 // going back up? sure
                 array_pop($path);
             }
@@ -926,6 +980,20 @@ class Core
          */
         if (! function_exists('json_encode')) {
             self::warnMissingExtension('json', true);
+        }
+
+        /**
+         * ctype is required for Twig.
+         */
+        if (! function_exists('ctype_alpha')) {
+            self::warnMissingExtension('ctype', true);
+        }
+
+        /**
+         * hash is required for cookie authentication.
+         */
+        if (! function_exists('hash_hmac')) {
+            self::warnMissingExtension('hash', true);
         }
     }
 
@@ -1094,5 +1162,126 @@ class Core
         }
 
         return unserialize($data);
+    }
+
+    /**
+     * Applies changes to PHP configuration.
+     *
+     * @return void
+     */
+    public static function configure()
+    {
+        /**
+         * Set utf-8 encoding for PHP
+         */
+        ini_set('default_charset', 'utf-8');
+        mb_internal_encoding('utf-8');
+
+        /**
+         * Set precision to sane value, with higher values
+         * things behave slightly unexpectedly, for example
+         * round(1.2, 2) returns 1.199999999999999956.
+         */
+        ini_set('precision', 14);
+
+        /**
+         * check timezone setting
+         * this could produce an E_WARNING - but only once,
+         * if not done here it will produce E_WARNING on every date/time function
+         */
+        date_default_timezone_set(@date_default_timezone_get());
+    }
+
+    /**
+     * Check whether PHP configuration matches our needs.
+     *
+     * @return void
+     */
+    public static function checkConfiguration()
+    {
+        /**
+         * As we try to handle charsets by ourself, mbstring overloads just
+         * break it, see bug 1063821.
+         *
+         * We specifically use empty here as we are looking for anything else than
+         * empty value or 0.
+         */
+        if (extension_loaded('mbstring') && !empty(ini_get('mbstring.func_overload'))) {
+            self::fatalError(
+                __(
+                    'You have enabled mbstring.func_overload in your PHP '
+                    . 'configuration. This option is incompatible with phpMyAdmin '
+                    . 'and might cause some data to be corrupted!'
+                )
+            );
+        }
+
+        /**
+         * The ini_set and ini_get functions can be disabled using
+         * disable_functions but we're relying quite a lot of them.
+         */
+        if (! function_exists('ini_get') || ! function_exists('ini_set')) {
+            self::fatalError(
+                __(
+                    'You have disabled ini_get and/or ini_set in php.ini. '
+                    . 'This option is incompatible with phpMyAdmin!'
+                )
+            );
+        }
+    }
+
+    /**
+     * prints list item for main page
+     *
+     * @param string $name            displayed text
+     * @param string $listId          id, used for css styles
+     * @param string $url             make item as link with $url as target
+     * @param string $mysql_help_page display a link to MySQL's manual
+     * @param string $target          special target for $url
+     * @param string $a_id            id for the anchor,
+     *                                used for jQuery to hook in functions
+     * @param string $class           class for the li element
+     * @param string $a_class         class for the anchor element
+     *
+     * @return void
+     */
+    public static function printListItem($name, $listId = null, $url = null,
+        $mysql_help_page = null, $target = null, $a_id = null, $class = null,
+        $a_class = null
+    ) {
+        echo Template::get('list/item')
+            ->render(
+                array(
+                    'content' => $name,
+                    'id' => $listId,
+                    'class' => $class,
+                    'url' => array(
+                        'href' => $url,
+                        'target' => $target,
+                        'id' => $a_id,
+                        'class' => $a_class,
+                    ),
+                    'mysql_help_page' => $mysql_help_page,
+                )
+            );
+    }
+
+    /**
+     * Checks request and fails with fatal error if something problematic is found
+     *
+     * @return void
+     */
+    public static function checkRequest()
+    {
+        if (isset($_REQUEST['GLOBALS']) || isset($_FILES['GLOBALS'])) {
+            self::fatalError(__("GLOBALS overwrite attempt"));
+        }
+
+        /**
+         * protect against possible exploits - there is no need to have so much variables
+         */
+        if (count($_REQUEST) > 1000) {
+            self::fatalError(__('possible exploit'));
+        }
     }
 }

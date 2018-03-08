@@ -54,11 +54,11 @@
                     or tbl_storage_engine == 'ARIA'
                     or tbl_storage_engine == 'MARIA'
                     or tbl_storage_engine == 'BDB') %}
-                    <tr class="tblFooters">
+                    <tr class="tblFooters print_ignore">
                         <td colspan="3" class="center">
-                            <a href="sql.php{{ url_query }}&amp;pos=0&amp;sql_query=
+                            <a href="sql.php" data-post="{{ url_query }}&amp;pos=0&amp;sql_query=
                                 {{- ('OPTIMIZE TABLE ' ~ Util_backquote(table))|url_encode }}">
-                                {{ Util_getIcon('b_tbloptimize.png', 'Optimize table'|trans) }}
+                                {{ Util_getIcon('b_tbloptimize', 'Optimize table'|trans) }}
                             </a>
                         </td>
                     </tr>

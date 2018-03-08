@@ -4,25 +4,21 @@
  *
  * @package PhpMyAdmin-test
  */
-
-/*
- * Include to test.
- */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\Config;
 use PhpMyAdmin\ErrorHandler;
 use PhpMyAdmin\Footer;
+use PhpMyAdmin\Tests\PmaTestCase;
 use PhpMyAdmin\Theme;
-
-require_once 'libraries/relation.lib.php';
-require_once 'test/PMATestCase.php';
+use ReflectionClass;
 
 /**
  * Tests for Footer class
  *
  * @package PhpMyAdmin-test
  */
-class FooterTest extends PMATestCase
+class FooterTest extends PmaTestCase
 {
 
     /**
@@ -51,7 +47,7 @@ class FooterTest extends PMATestCase
         $GLOBALS['text_dir'] = 'ltr';
         $GLOBALS['PMA_Config'] = new Config();
         $GLOBALS['PMA_Config']->enableBc();
-        $GLOBALS['collation_connection'] = 'utf8_general_ci';
+        $GLOBALS['cfg']['Server']['DisableIS'] = false;
         $GLOBALS['cfg']['Server']['verbose'] = 'verbose host';
         $GLOBALS['server'] = '1';
         $_GET['reload_left_frame'] = '1';
@@ -61,7 +57,6 @@ class FooterTest extends PMATestCase
         unset($GLOBALS['sql_query']);
         $GLOBALS['error_handler'] = new ErrorHandler();
         unset($_POST);
-
     }
 
     /**
@@ -159,8 +154,8 @@ class FooterTest extends PMATestCase
 
         $this->assertEquals(
             '<div id="selflink" class="print_ignore"><a href="index.php?db=&amp;'
-            . 'table=&amp;server=1&amp;target=&amp;lang=en&amp;collation_connection='
-            . 'utf8_general_ci" title="Open new phpMyAdmin window" '
+            . 'table=&amp;server=1&amp;target=&amp;lang=en'
+            . '" title="Open new phpMyAdmin window" '
             . 'target="_blank" rel="noopener noreferrer">Open new phpMyAdmin window</a></div>',
             $this->_callPrivateFunction(
                 '_getSelfLink',
@@ -184,8 +179,8 @@ class FooterTest extends PMATestCase
 
         $this->assertEquals(
             '<div id="selflink" class="print_ignore"><a href="index.php?db=&amp;'
-            . 'table=&amp;server=1&amp;target=&amp;lang=en&amp;collation_connection='
-            . 'utf8_general_ci" title="Open new phpMyAdmin window" '
+            . 'table=&amp;server=1&amp;target=&amp;lang=en'
+            . '" title="Open new phpMyAdmin window" '
             . 'target="_blank" rel="noopener noreferrer"><img src="themes/dot.gif" title="Open new '
             . 'phpMyAdmin window" alt="Open new phpMyAdmin window" '
             . 'class="icon ic_window-new" /></a></div>',

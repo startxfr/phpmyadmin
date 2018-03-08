@@ -12,9 +12,10 @@ namespace PhpMyAdmin\Controllers\Server;
 use PhpMyAdmin\Controllers\Controller;
 use PhpMyAdmin\Message;
 use PhpMyAdmin\Response;
+use PhpMyAdmin\Server\Common;
 use PhpMyAdmin\Template;
-use PhpMyAdmin\Util;
 use PhpMyAdmin\Url;
+use PhpMyAdmin\Util;
 
 /**
  * Handles viewing and editing server variables
@@ -31,9 +32,9 @@ class ServerVariablesController extends Controller
     /**
      * Constructs ServerVariablesController
      */
-    public function __construct()
+    public function __construct($response, $dbi)
     {
-        parent::__construct();
+        parent::__construct($response, $dbi);
 
         $this->variable_doc_links = $this->_getDocumentLinks();
     }
@@ -71,9 +72,11 @@ class ServerVariablesController extends Controller
         /**
          * Displays the sub-page heading
          */
-        $doc_link = Util::showMySQLDocu('server_system_variables');
-        $this->response->addHtml(
-            PMA_getHtmlForSubPageHeader('variables', $doc_link)
+        $this->response->addHTML(
+            Template::get('server/sub_page_header')->render([
+                'type' => 'variables',
+                'link' => 'server_system_variables',
+            ])
         );
 
         /**
@@ -288,13 +291,14 @@ class ServerVariablesController extends Controller
      *
      * @return string
      */
-    private function _getHtmlForServerVariables($serverVars, $serverVarsSession)
+    private function _getHtmlForServerVariables(array $serverVars, array $serverVarsSession)
     {
         // filter
         $filterValue = ! empty($_REQUEST['filter']) ? $_REQUEST['filter'] : '';
         $output = Template::get('filter')
             ->render(array('filter_value' => $filterValue));
 
+        $output .= '<div class="responsivetable">';
         $output .= '<table id="serverVariables" class="width100 data filteredData noclick">';
         $output .= Template::get('server/variables/variable_table_head')->render();
         $output .= '<tbody>';
@@ -305,6 +309,7 @@ class ServerVariablesController extends Controller
 
         $output .= '</tbody>';
         $output .= '</table>';
+        $output .= '</div>';
 
         return $output;
     }
@@ -319,7 +324,7 @@ class ServerVariablesController extends Controller
      * @return string
      */
     private function _getHtmlForServerVariablesItems(
-        $serverVars, $serverVarsSession
+        array $serverVars, array $serverVarsSession
     ) {
         // list of static (i.e. non-editable) system variables
         $static_variables = $this->_getStaticSystemVariables();
@@ -334,21 +339,18 @@ class ServerVariablesController extends Controller
 
             list($formattedValue, $isHtmlFormatted) = $this->_formatVariable($name, $value);
 
-            $output .= Template::get('server/variables/variable_row')
-                ->render(
-                    array(
-                        'rowClass'    => $row_class,
-                        'editable'    => ! in_array(
-                            strtolower($name),
-                            $static_variables
-                        ),
-                        'docLink'     => $docLink,
-                        'name'        => $name,
-                        'value'       => $formattedValue,
-                        'isSuperuser' => $this->dbi->isSuperuser(),
-                        'isHtmlFormatted' => $isHtmlFormatted,
-                    )
-                );
+            $output .= Template::get('server/variables/variable_row')->render(array(
+                'row_class' => $row_class,
+                'editable' => ! in_array(
+                    strtolower($name),
+                    $static_variables
+                ),
+                'doc_link' => $docLink,
+                'name' => $name,
+                'value' => $formattedValue,
+                'is_superuser' => $this->dbi->isSuperuser(),
+                'is_html_formatted' => $isHtmlFormatted,
+            ));
 
             if ($has_session_value) {
                 list($formattedValue, $isHtmlFormatted)= $this->_formatVariable(

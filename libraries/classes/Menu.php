@@ -8,6 +8,7 @@
 namespace PhpMyAdmin;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Tracker;
 use PhpMyAdmin\Url;
 use PhpMyAdmin\Util;
@@ -105,7 +106,7 @@ class Menu
             $url_params['db'] = $this->_db;
             $url_params['table'] = $this->_table;
             $level = 'table';
-        } else if (strlen($this->_db) > 0) {
+        } elseif (strlen($this->_db) > 0) {
             $tabs = $this->_getDbTabs();
             $url_params['db'] = $this->_db;
             $level = 'db';
@@ -137,7 +138,7 @@ class Menu
             return Util::cacheGet($cache_key);
         }
         $allowedTabs = Util::getMenuTabList($level);
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         if ($cfgRelation['menuswork']) {
             $groupTable = Util::backquote($cfgRelation['db'])
                 . "."
@@ -152,7 +153,7 @@ class Menu
                 . $userTable . " WHERE `username` = '"
                 . $GLOBALS['dbi']->escapeString($GLOBALS['cfg']['Server']['user']) . "')";
 
-            $result = PMA_queryAsControlUser($sql_query, false);
+            $result = Relation::queryAsControlUser($sql_query, false);
             if ($result) {
                 while ($row = $GLOBALS['dbi']->fetchAssoc($result)) {
                     $tabName = mb_substr(
@@ -198,7 +199,7 @@ class Menu
         $retval .= "<div id='serverinfo'>";
         if (Util::showIcons('TabsMode')) {
             $retval .= Util::getImage(
-                's_host.png',
+                's_host',
                 '',
                 array('class' => 'item')
             );
@@ -217,7 +218,7 @@ class Menu
             $retval .= $separator;
             if (Util::showIcons('TabsMode')) {
                 $retval .= Util::getImage(
-                    's_db.png',
+                    's_db',
                     '',
                     array('class' => 'item')
                 );
@@ -249,7 +250,7 @@ class Menu
                 }
                 $retval .= $separator;
                 if (Util::showIcons('TabsMode')) {
-                    $icon = $tbl_is_view ? 'b_views.png' : 's_tbl.png';
+                    $icon = $tbl_is_view ? 'b_views' : 's_tbl';
                     $retval .= Util::getImage(
                         $icon,
                         '',
@@ -292,12 +293,12 @@ class Menu
                 } // end if
             } else {
                 // no table selected, display database comment if present
-                $cfgRelation = PMA_getRelationsParam();
+                $cfgRelation = Relation::getRelationsParam();
 
                 // Get additional information about tables for tooltip is done
                 // in Util::getDbInfo() only once
                 if ($cfgRelation['commwork']) {
-                    $comment = PMA_getDbComment($this->_db);
+                    $comment = Relation::getDbComment($this->_db);
                     /**
                      * Displays table comment
                      */
@@ -339,12 +340,12 @@ class Menu
 
         $tabs = array();
 
-        $tabs['browse']['icon'] = 'b_browse.png';
+        $tabs['browse']['icon'] = 'b_browse';
         $tabs['browse']['text'] = __('Browse');
         $tabs['browse']['link'] = 'sql.php';
         $tabs['browse']['args']['pos'] = 0;
 
-        $tabs['structure']['icon'] = 'b_props.png';
+        $tabs['structure']['icon'] = 'b_props';
         $tabs['structure']['link'] = 'tbl_structure.php';
         $tabs['structure']['text'] = __('Structure');
         $tabs['structure']['active'] = in_array(
@@ -352,11 +353,11 @@ class Menu
             array('tbl_structure.php', 'tbl_relation.php')
         );
 
-        $tabs['sql']['icon'] = 'b_sql.png';
+        $tabs['sql']['icon'] = 'b_sql';
         $tabs['sql']['link'] = 'tbl_sql.php';
         $tabs['sql']['text'] = __('SQL');
 
-        $tabs['search']['icon'] = 'b_search.png';
+        $tabs['search']['icon'] = 'b_search';
         $tabs['search']['text'] = __('Search');
         $tabs['search']['link'] = 'tbl_select.php';
         $tabs['search']['active'] = in_array(
@@ -365,12 +366,12 @@ class Menu
         );
 
         if (! $db_is_system_schema && (! $tbl_is_view || $updatable_view)) {
-            $tabs['insert']['icon'] = 'b_insrow.png';
+            $tabs['insert']['icon'] = 'b_insrow';
             $tabs['insert']['link'] = 'tbl_change.php';
             $tabs['insert']['text'] = __('Insert');
         }
 
-        $tabs['export']['icon'] = 'b_tblexport.png';
+        $tabs['export']['icon'] = 'b_tblexport';
         $tabs['export']['link'] = 'tbl_export.php';
         $tabs['export']['args']['single_table'] = 'true';
         $tabs['export']['text'] = __('Export');
@@ -379,7 +380,7 @@ class Menu
          * Don't display "Import" for views and information_schema
          */
         if (! $tbl_is_view && ! $db_is_system_schema) {
-            $tabs['import']['icon'] = 'b_tblimport.png';
+            $tabs['import']['icon'] = 'b_tblimport';
             $tabs['import']['link'] = 'tbl_import.php';
             $tabs['import']['text'] = __('Import');
         }
@@ -392,13 +393,13 @@ class Menu
             // stay on table view
             $tabs['privileges']['args']['viewing_mode'] = 'table';
             $tabs['privileges']['text'] = __('Privileges');
-            $tabs['privileges']['icon'] = 's_rights.png';
+            $tabs['privileges']['icon'] = 's_rights';
         }
         /**
          * Don't display "Operations" for views and information_schema
          */
         if (! $tbl_is_view && ! $db_is_system_schema) {
-            $tabs['operation']['icon'] = 'b_tblops.png';
+            $tabs['operation']['icon'] = 'b_tblops';
             $tabs['operation']['link'] = 'tbl_operations.php';
             $tabs['operation']['text'] = __('Operations');
         }
@@ -406,13 +407,13 @@ class Menu
          * Views support a limited number of operations
          */
         if ($tbl_is_view && ! $db_is_system_schema) {
-            $tabs['operation']['icon'] = 'b_tblops.png';
+            $tabs['operation']['icon'] = 'b_tblops';
             $tabs['operation']['link'] = 'view_operations.php';
             $tabs['operation']['text'] = __('Operations');
         }
 
         if (Tracker::isActive() && ! $db_is_system_schema) {
-            $tabs['tracking']['icon'] = 'eye.png';
+            $tabs['tracking']['icon'] = 'eye';
             $tabs['tracking']['text'] = __('Tracking');
             $tabs['tracking']['link'] = 'tbl_tracking.php';
         }
@@ -426,7 +427,7 @@ class Menu
         ) {
             $tabs['triggers']['link'] = 'tbl_triggers.php';
             $tabs['triggers']['text'] = __('Triggers');
-            $tabs['triggers']['icon'] = 'b_triggers.png';
+            $tabs['triggers']['icon'] = 'b_triggers';
         }
 
         return $tabs;
@@ -448,34 +449,34 @@ class Menu
         /**
          * Gets the relation settings
          */
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
 
         $tabs = array();
 
         $tabs['structure']['link'] = 'db_structure.php';
         $tabs['structure']['text'] = __('Structure');
-        $tabs['structure']['icon'] = 'b_props.png';
+        $tabs['structure']['icon'] = 'b_props';
 
         $tabs['sql']['link'] = 'db_sql.php';
         $tabs['sql']['text'] = __('SQL');
-        $tabs['sql']['icon'] = 'b_sql.png';
+        $tabs['sql']['icon'] = 'b_sql';
 
         $tabs['search']['text'] = __('Search');
-        $tabs['search']['icon'] = 'b_search.png';
+        $tabs['search']['icon'] = 'b_search';
         $tabs['search']['link'] = 'db_search.php';
         if ($num_tables == 0) {
             $tabs['search']['warning'] = __('Database seems to be empty!');
         }
 
-        $tabs['qbe']['text'] = __('Query');
-        $tabs['qbe']['icon'] = 's_db.png';
-        $tabs['qbe']['link'] = 'db_qbe.php';
+        $tabs['multi_table_query']['text'] = __('Query');
+        $tabs['multi_table_query']['icon'] = 's_db';
+        $tabs['multi_table_query']['link'] = 'db_multi_table_query.php';
         if ($num_tables == 0) {
             $tabs['qbe']['warning'] = __('Database seems to be empty!');
         }
 
         $tabs['export']['text'] = __('Export');
-        $tabs['export']['icon'] = 'b_export.png';
+        $tabs['export']['icon'] = 'b_export';
         $tabs['export']['link'] = 'db_export.php';
         if ($num_tables == 0) {
             $tabs['export']['warning'] = __('Database seems to be empty!');
@@ -484,11 +485,11 @@ class Menu
         if (! $db_is_system_schema) {
             $tabs['import']['link'] = 'db_import.php';
             $tabs['import']['text'] = __('Import');
-            $tabs['import']['icon'] = 'b_import.png';
+            $tabs['import']['icon'] = 'b_import';
 
             $tabs['operation']['link'] = 'db_operations.php';
             $tabs['operation']['text'] = __('Operations');
-            $tabs['operation']['icon'] = 'b_tblops.png';
+            $tabs['operation']['icon'] = 'b_tblops';
 
             if (($is_superuser || $isCreateOrGrantUser)) {
                 $tabs['privileges']['link'] = 'server_privileges.php';
@@ -496,35 +497,35 @@ class Menu
                 // stay on database view
                 $tabs['privileges']['args']['viewing_mode'] = 'db';
                 $tabs['privileges']['text'] = __('Privileges');
-                $tabs['privileges']['icon'] = 's_rights.png';
+                $tabs['privileges']['icon'] = 's_rights';
             }
 
             $tabs['routines']['link'] = 'db_routines.php';
             $tabs['routines']['text'] = __('Routines');
-            $tabs['routines']['icon'] = 'b_routines.png';
+            $tabs['routines']['icon'] = 'b_routines';
 
             if (Util::currentUserHasPrivilege('EVENT', $this->_db)) {
                 $tabs['events']['link'] = 'db_events.php';
                 $tabs['events']['text'] = __('Events');
-                $tabs['events']['icon'] = 'b_events.png';
+                $tabs['events']['icon'] = 'b_events';
             }
 
             if (Util::currentUserHasPrivilege('TRIGGER', $this->_db)) {
                 $tabs['triggers']['link'] = 'db_triggers.php';
                 $tabs['triggers']['text'] = __('Triggers');
-                $tabs['triggers']['icon'] = 'b_triggers.png';
+                $tabs['triggers']['icon'] = 'b_triggers';
             }
         }
 
         if (Tracker::isActive() && ! $db_is_system_schema) {
             $tabs['tracking']['text'] = __('Tracking');
-            $tabs['tracking']['icon'] = 'eye.png';
+            $tabs['tracking']['icon'] = 'eye';
             $tabs['tracking']['link'] = 'db_tracking.php';
         }
 
         if (! $db_is_system_schema) {
             $tabs['designer']['text'] = __('Designer');
-            $tabs['designer']['icon'] = 'b_relations.png';
+            $tabs['designer']['icon'] = 'b_relations';
             $tabs['designer']['link'] = 'db_designer.php';
             $tabs['designer']['id'] = 'designer_tab';
         }
@@ -533,7 +534,7 @@ class Menu
             && $cfgRelation['centralcolumnswork']
         ) {
             $tabs['central_columns']['text'] = __('Central columns');
-            $tabs['central_columns']['icon'] = 'centralColumns.png';
+            $tabs['central_columns']['icon'] = 'centralColumns';
             $tabs['central_columns']['link'] = 'db_central_columns.php';
         }
         return $tabs;
@@ -556,7 +557,7 @@ class Menu
                 'SHOW MASTER LOGS',
                 'Log_name',
                 null,
-                null,
+                DatabaseInterface::CONNECT_USER,
                 DatabaseInterface::QUERY_STORE
             );
             Util::cacheSet('binary_logs', $binary_logs);
@@ -564,15 +565,15 @@ class Menu
 
         $tabs = array();
 
-        $tabs['databases']['icon'] = 's_db.png';
+        $tabs['databases']['icon'] = 's_db';
         $tabs['databases']['link'] = 'server_databases.php';
         $tabs['databases']['text'] = __('Databases');
 
-        $tabs['sql']['icon'] = 'b_sql.png';
+        $tabs['sql']['icon'] = 'b_sql';
         $tabs['sql']['link'] = 'server_sql.php';
         $tabs['sql']['text'] = __('SQL');
 
-        $tabs['status']['icon'] = 's_status.png';
+        $tabs['status']['icon'] = 's_status';
         $tabs['status']['link'] = 'server_status.php';
         $tabs['status']['text'] = __('Status');
         $tabs['status']['active'] = in_array(
@@ -588,7 +589,7 @@ class Menu
         );
 
         if ($is_superuser || $isCreateOrGrantUser) {
-            $tabs['rights']['icon'] = 's_rights.png';
+            $tabs['rights']['icon'] = 's_rights';
             $tabs['rights']['link'] = 'server_privileges.php';
             $tabs['rights']['text'] = __('User accounts');
             $tabs['rights']['active'] = in_array(
@@ -598,15 +599,15 @@ class Menu
             $tabs['rights']['args']['viewing_mode'] = 'server';
         }
 
-        $tabs['export']['icon'] = 'b_export.png';
+        $tabs['export']['icon'] = 'b_export';
         $tabs['export']['link'] = 'server_export.php';
         $tabs['export']['text'] = __('Export');
 
-        $tabs['import']['icon'] = 'b_import.png';
+        $tabs['import']['icon'] = 'b_import';
         $tabs['import']['link'] = 'server_import.php';
         $tabs['import']['text'] = __('Import');
 
-        $tabs['settings']['icon']   = 'b_tblops.png';
+        $tabs['settings']['icon']   = 'b_tblops';
         $tabs['settings']['link']   = 'prefs_manage.php';
         $tabs['settings']['text']   = __('Settings');
         $tabs['settings']['active'] = in_array(
@@ -615,30 +616,30 @@ class Menu
         );
 
         if (! empty($binary_logs)) {
-            $tabs['binlog']['icon'] = 's_tbl.png';
+            $tabs['binlog']['icon'] = 's_tbl';
             $tabs['binlog']['link'] = 'server_binlog.php';
             $tabs['binlog']['text'] = __('Binary log');
         }
 
         if ($is_superuser) {
-            $tabs['replication']['icon'] = 's_replication.png';
+            $tabs['replication']['icon'] = 's_replication';
             $tabs['replication']['link'] = 'server_replication.php';
             $tabs['replication']['text'] = __('Replication');
         }
 
-        $tabs['vars']['icon'] = 's_vars.png';
+        $tabs['vars']['icon'] = 's_vars';
         $tabs['vars']['link'] = 'server_variables.php';
         $tabs['vars']['text'] = __('Variables');
 
-        $tabs['charset']['icon'] = 's_asci.png';
+        $tabs['charset']['icon'] = 's_asci';
         $tabs['charset']['link'] = 'server_collations.php';
         $tabs['charset']['text'] = __('Charsets');
 
-        $tabs['engine']['icon'] = 'b_engine.png';
+        $tabs['engine']['icon'] = 'b_engine';
         $tabs['engine']['link'] = 'server_engines.php';
         $tabs['engine']['text'] = __('Engines');
 
-        $tabs['plugins']['icon'] = 'b_plugin.png';
+        $tabs['plugins']['icon'] = 'b_plugin';
         $tabs['plugins']['link'] = 'server_plugins.php';
         $tabs['plugins']['text'] = __('Plugins');
 

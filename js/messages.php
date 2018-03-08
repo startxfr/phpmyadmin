@@ -69,6 +69,8 @@ $js_messages['strConfirmDeleteQBESearch']
     = __('Do you really want to delete the search "%s"?');
 $js_messages['strConfirmNavigation']
     = __('You have unsaved changes; are you sure you want to leave this page?');
+$js_messages['strConfirmRowChange']
+    = __('You are trying to reduce the number of rows, but have already entered data in those rows which will be lost. Do you wish to continue?');
 $js_messages['strDropUserWarning']
     = __('Do you really want to revoke the selected user(s) ?');
 $js_messages['strDeleteCentralColumnWarning']
@@ -362,7 +364,12 @@ $js_messages['strRequestFailed'] = __('Request failed!!');
 $js_messages['strErrorProcessingRequest'] = __('Error in processing request');
 $js_messages['strErrorCode'] = __('Error code: %s');
 $js_messages['strErrorText'] = __('Error text: %s');
+$js_messages['strErrorConnection'] = __(
+    'It seems that the connection to server has been lost. Please check your ' .
+    'network connectivity and server status.'
+);
 $js_messages['strNoDatabasesSelected'] = __('No databases selected.');
+$js_messages['strNoAccountSelected'] = __('No accounts selected.');
 $js_messages['strDroppingColumn'] = __('Dropping column');
 $js_messages['strAddingPrimaryKey'] = __('Adding primary key');
 $js_messages['strOK'] = __('OK');
@@ -542,7 +549,7 @@ $js_messages['strLockToolTip'] = __(
     . ' you will be prompted for confirmation before abandoning changes'
 );
 
-/* Designer (js/pmd/move.js) */
+/* Designer (js/designer/move.js) */
 $js_messages['strSelectReferencedKey'] = __('Select referenced key');
 $js_messages['strSelectForeignKey'] = __('Select Foreign Key');
 $js_messages['strPleaseSelectPrimaryOrUniqueKey']
@@ -552,6 +559,7 @@ $js_messages['strLeavingDesigner'] = __(
     'You haven\'t saved the changes in the layout. They will be lost if you'
     . ' don\'t save them. Do you want to continue?'
 );
+$js_messages['strAddTables'] = __('Add tables from other databases');
 $js_messages['strPageName'] = __('Page name');
 $js_messages['strSavePage'] = __('Save page');
 $js_messages['strSavePageAs'] = __('Save page as');
@@ -566,7 +574,7 @@ $js_messages['strSuccessfulPageDelete'] = __('Successfully deleted the page');
 $js_messages['strExportRelationalSchema'] = __('Export relational schema');
 $js_messages['strModificationSaved'] = __('Modifications have been saved');
 
-/* Visual query builder (js/pmd/move.js) */
+/* Visual query builder (js/designer/move.js) */
 $js_messages['strAddOption'] = __('Add an option for column "%s".');
 $js_messages['strObjectsCreated'] = __('%d object(s) created.');
 $js_messages['strSubmit'] = __('Submit');
@@ -691,10 +699,10 @@ $js_messages['phpErrorsFound'] = '<div class="error">'
     . '<div>'
     . '<input id="pma_ignore_errors_popup" type="submit" value="'
     . __('Ignore')
-    . '" class="floatright" style="margin-top: 20px;">'
+    . '" class="floatright message_errors_found">'
     . '<input id="pma_ignore_all_errors_popup" type="submit" value="'
     . __('Ignore All')
-    . '" class="floatright" style="margin-top: 20px;">'
+    . '" class="floatright message_errors_found">'
     . '</div></div>';
 
 $js_messages['phpErrorsBeingSubmitted'] = '<div class="error">'
@@ -735,6 +743,10 @@ $js_messages['strVeryWeak'] = __('Very weak');
 $js_messages['strWeak'] = __('Weak');
 $js_messages['strGood'] = __('Good');
 $js_messages['strStrong'] = __('Strong');
+
+/* U2F errors */
+$js_messages['strU2FTimeout'] = __('Timed out waiting for security key activation.');
+$js_messages['strU2FError'] = __('Failed security key activation (%s).');
 
 echo "var PMA_messages = new Array();\n";
 foreach ($js_messages as $name => $js_message) {

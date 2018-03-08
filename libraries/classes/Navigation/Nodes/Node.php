@@ -7,6 +7,8 @@
  */
 namespace PhpMyAdmin\Navigation\Nodes;
 
+use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Util;
 
 /**
@@ -110,7 +112,7 @@ class Node
      */
     public function __construct($name, $type = Node::OBJECT, $is_group = false)
     {
-        if (!empty($name)) {
+        if (strlen($name)) {
             $this->name = $name;
             $this->real_name = $name;
         }
@@ -662,13 +664,8 @@ class Node
      */
     private function _isHideDb($db)
     {
-        if (!empty($GLOBALS['cfg']['Server']['hide_db'])
-            && preg_match('/' . $GLOBALS['cfg']['Server']['hide_db'] . '/', $db)
-        ) {
-            return true;
-        }
-
-        return false;
+        return !empty($GLOBALS['cfg']['Server']['hide_db'])
+            && preg_match('/' . $GLOBALS['cfg']['Server']['hide_db'] . '/', $db);
     }
 
     /**
@@ -793,10 +790,10 @@ class Node
         } elseif ($match && !$this->is_group) {
             $this->visible = true;
 
-            return Util::getImage('b_minus.png');
-        } else {
-            return Util::getImage('b_plus.png', __('Expand/Collapse'));
+            return Util::getImage('b_minus');
         }
+
+        return Util::getImage('b_plus', __('Expand/Collapse'));
     }
 
     /**
@@ -806,7 +803,7 @@ class Node
      */
     public function getNavigationHidingData()
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         if ($cfgRelation['navwork']) {
             $navTable = Util::backquote($cfgRelation['db'])
                 . "." . Util::backquote(
@@ -822,7 +819,7 @@ class Node
                 $sqlQuery,
                 'db_name',
                 'count',
-                $GLOBALS['controllink']
+                DatabaseInterface::CONNECT_CONTROL
             );
 
             return $counts;

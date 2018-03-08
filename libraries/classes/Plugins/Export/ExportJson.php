@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -118,7 +119,7 @@ class ExportJson extends ExportPlugin
             'comment' => 'Export to JSON plugin for PHPMyAdmin',
         );
 
-        return PMA_exportOutputHandler(
+        return Export::outputHandler(
             '[' . $crlf . $this->encode($meta) . ',' . $crlf
         );
     }
@@ -132,7 +133,7 @@ class ExportJson extends ExportPlugin
     {
         global $crlf;
 
-        return PMA_exportOutputHandler(']' . $crlf);
+        return Export::outputHandler(']' . $crlf);
     }
 
     /**
@@ -156,7 +157,7 @@ class ExportJson extends ExportPlugin
             'name' => $db_alias
         );
 
-        return PMA_exportOutputHandler(
+        return Export::outputHandler(
             $this->encode($meta) . ',' . $crlf
         );
     }
@@ -205,14 +206,14 @@ class ExportJson extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
         $this->initAlias($aliases, $db_alias, $table_alias);
 
         if (! $this->first) {
-            if (!PMA_exportOutputHandler(',')) {
+            if (!Export::outputHandler(',')) {
                 return false;
             }
         } else {
@@ -229,13 +230,13 @@ class ExportJson extends ExportPlugin
         );
         list($header, $footer) = explode('"@@DATA@@"', $buffer);
 
-        if (!PMA_exportOutputHandler($header . $crlf . '[' . $crlf)) {
+        if (!Export::outputHandler($header . $crlf . '[' . $crlf)) {
             return false;
         }
 
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $columns_cnt = $GLOBALS['dbi']->numFields($result);
@@ -256,7 +257,7 @@ class ExportJson extends ExportPlugin
 
             // Output table name as comment if this is the first record of the table
             if ($record_cnt > 1) {
-                if (!PMA_exportOutputHandler(',' . $crlf)) {
+                if (!Export::outputHandler(',' . $crlf)) {
                     return false;
                 }
             }
@@ -267,12 +268,12 @@ class ExportJson extends ExportPlugin
                 $data[$columns[$i]] = $record[$i];
             }
 
-            if (!PMA_exportOutputHandler($this->encode($data))) {
+            if (!Export::outputHandler($this->encode($data))) {
                 return false;
             }
         }
 
-        if (!PMA_exportOutputHandler($crlf . ']' . $crlf . $footer . $crlf)) {
+        if (!Export::outputHandler($crlf . ']' . $crlf . $footer . $crlf)) {
             return false;
         }
 

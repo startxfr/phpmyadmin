@@ -17,11 +17,11 @@ phpMyAdmin - ChangeLog
 - issue #13269 Small refactoring in preparation to CSP
 - issue #13384 Database link broken in Databases Page
 - issue #13391 Configurable authentication logging using $cfg['AuthLog']
-- issue #13086 Add support for Goole Invisible Captcha
+- issue #13086 Add support for Google Invisible Captcha
 - issue #13058 Improved error reporting for reCAPTCHA
 - issue #12899 Improved rendering of server variables table
 - issue #12948 Fixed javascript editor for TIME values
-- issue #13095 Fixed alignmnet of foreign keys editing
+- issue #13095 Fixed alignment of foreign keys editing
 - issue #12944 Improved inline editor for JSON
 - issue #13145 Improved layout of operations pages
 - issue #13448 Add "format" query button in edit view form
@@ -30,10 +30,85 @@ phpMyAdmin - ChangeLog
 - issue #12354 Indicate SSL status on main page
 - issue #5666  Configuration directives for defaults of Transformation options
 - issue #12261 Remove inline JavaScript
+- issue #13408 Show MySQL warnings when executing SQL queries
+- issue #5827  Allow Designer to show tables from other databases
+- issue #13268 Replace Query-By-Example with multi-table query generator interface
+- issue #13576 Add privileges export to per-database listing
+- issue        Consolidate functions into class files
+- issue #13560 Add support for changing collation for all tables and columns in database
+- issue #13303 Add support for creating fulltext index from table structure
+- issue #13711 Lower default value for $cfg['MaxExactCount']
+- issue #13722 DisableIS is not fully honored
+- issue #6197  Added support for authentication using U2F and 2FA
+- issue #13480 Avoid removing cookies on upgrade
+- issue #13397 Remember state of navigation panel
+- issue #11688 Reduced cookie usage
+- issue #13466 Better utilization of user preferences
+- issue #14042 Rename PMD to Designer
+- issue #13940 Honor arg_separator in AJAX requests
 
-4.7.4 (not yet released)
+4.7.10 (not yet released)
+
+4.7.9 (2018-03-05)
+- issue #13931 Fixed browsing tables with more results
+- issue #13927 "Not an integer" when browsing a table
+- issue #13887 "Input variables exceeded 1000" error relating to PHP's max_input_vars directive
+
+4.7.8 (2018-02-20)
+- issue #13914 Fixed resetting default setting values.
+- issue #13758 Fixed fallback value for collation connection.
+- issue #13938 Fixed error handling in PHP 7.2
+- issue        [security] Fix XSS in Central Columns Feature, See PMASA-2018-01
+
+4.7.7 (2017-12-23)
+- issue #13865 Fixed displaying of formatted numeric values for some locales
+- issue #13856 Ensure datetimepicker is always loaded for datetime fields
+- issue #13848 Fixed PHP error when browsing certain results
+- issue        [security] Fix XSRF/CSRF vulnerability, see PMASA-2017-09
+
+4.7.6 (2017-11-29)
+- issue #13517 Fixed check all interaction with filtering
+- issue #13803 Add SJIS-win to default list of allowed charsets
+- issue #13436 Improve detection that MySQL server needs SSL connection
+- issue #13038 Support JSON datatype on MariaDB 10.2.7 and newer
+- issue #13824 Fixed constructing ALTER query with AFTER
+- issue #13821 Lock page when changes are done in the SQL editor
+- issue #13842 Prefer iconv for encoding conversions
+- issue #13737 Fixed changing password on MariaDB cluster
+
+4.7.5 (2017-10-23)
+- issue #13615 Avoid problems with browsing unknown query types
+- issue #13612 Integrate tooltip into datetime pickers
+- issue #13628 Fixed javascript error in server monitor
+- issue #13444 Fixed server monitor on non Linux and Windows systems
+- issue #13633 Reload javscript messages when changing language
+- issue #13604 Fixed crash on invalid ordering data
+- issue #13639 Fixed error when browsing non SELECT results
+- issue #13533 Fixed saving column to display
+- issue #13647 Fixed export of tables with VIRTUAL columns
+- issue #13669 Fixed selecting multiple rows accidentally selects the next row too
+- issue #13513 Fixed edit index Column alignment issue
+- issue #13515 Fixed rendering of add index dialog
+- issue #13710 Fixed possible error in server advisor
+- issue #13477 Fixed setting input transformations
+- issue #13552 Fixed IPv4/IPv6 To Binary input transformation
+- issue #13686 Clicking on column name to trigger sort with an active search leads to logout
+- issue #13725 Fixed copying tables with specific PARTITION definition
+- issue #13761 Fixed listing of bookmarks for a database
+- issue #13800 Database lost when renaming to similar name and lower_case_table_names=1
+
+4.7.4 (2017-08-23)
 - issue #13415 Remove shadow from the logo
 - issue #13507 Fixed per server theme feature
+- issue #13523 Missing newline in ALTER exports
+- issue #13414 Fixed several compatibility issues with PHP 7.2
+- issue #13550 Fixed copy results to clipboard
+- issue #13562 Add limitation for user group length
+- issue #13561 Fixed edit variable link in advisor
+- issue #13579 Optimize table link should not be visible in print page
+- issue #13553 Improved error handling on corrupted tables
+- issue #13512 Fixed rendering of add index dialog
+- issue #13606 Fixed refreshing server variables
 
 4.7.3 (2017-07-20)
 - issue #13447 Large multi-line query removes Export operation and blanks query box options

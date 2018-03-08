@@ -4,7 +4,7 @@
     id="index_frm"
     class="ajax">
 
-    {{ URL_getHiddenInputs(form_params) }}
+    {{ Url_getHiddenInputs(form_params) }}
 
     <fieldset id="index_edit_fields">
         <div class="index_info">
@@ -39,7 +39,7 @@
                 {{ index.generateIndexChoiceSelector(create_edit_table)|raw }}
             </div>
 
-            {{ Util_getDivForSliderEffect('indexoptions', 'Options'|trans) }}
+            {{ Util_getDivForSliderEffect('indexoptions', 'Advanced Options'|trans) }}
 
             <div>
                 <div class="label">

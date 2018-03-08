@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\OpenDocument;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
@@ -147,17 +148,13 @@ class ExportOds extends ExportPlugin
         $GLOBALS['ods_buffer'] .= '</office:spreadsheet>'
             . '</office:body>'
             . '</office:document-content>';
-        if (!PMA_exportOutputHandler(
+
+        return Export::outputHandler(
             OpenDocument::create(
                 'application/vnd.oasis.opendocument.spreadsheet',
                 $GLOBALS['ods_buffer']
             )
-        )
-        ) {
-            return false;
-        }
-
-        return true;
+        );
     }
 
     /**
@@ -217,7 +214,7 @@ class ExportOds extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $what;
 
@@ -227,7 +224,7 @@ class ExportOds extends ExportPlugin
         // Gets the data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);

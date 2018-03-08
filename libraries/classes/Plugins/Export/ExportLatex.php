@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -16,6 +17,7 @@ use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyRootGroup;
 use PhpMyAdmin\Properties\Options\Items\BoolPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\RadioPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\TextPropertyItem;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Util;
 
@@ -221,7 +223,7 @@ class ExportLatex extends ExportPlugin
             . '% ' . __('Server version:') . ' ' . $GLOBALS['dbi']->getVersionString() . $crlf
             . '% ' . __('PHP Version:') . ' ' . phpversion() . $crlf;
 
-        return PMA_exportOutputHandler($head);
+        return Export::outputHandler($head);
     }
 
     /**
@@ -252,7 +254,7 @@ class ExportLatex extends ExportPlugin
             . '% ' . __('Database:') . ' ' . '\'' . $db_alias . '\'' . $crlf
             . '% ' . $crlf;
 
-        return PMA_exportOutputHandler($head);
+        return Export::outputHandler($head);
     }
 
     /**
@@ -299,7 +301,7 @@ class ExportLatex extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -307,7 +309,7 @@ class ExportLatex extends ExportPlugin
 
         $result = $GLOBALS['dbi']->tryQuery(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
 
@@ -349,7 +351,7 @@ class ExportLatex extends ExportPlugin
                 )
                 . '} \\\\';
         }
-        if (!PMA_exportOutputHandler($buffer)) {
+        if (!Export::outputHandler($buffer)) {
             return false;
         }
 
@@ -362,11 +364,11 @@ class ExportLatex extends ExportPlugin
             }
 
             $buffer = mb_substr($buffer, 0, -2) . '\\\\ \\hline \hline ';
-            if (!PMA_exportOutputHandler($buffer . ' \\endfirsthead ' . $crlf)) {
+            if (!Export::outputHandler($buffer . ' \\endfirsthead ' . $crlf)) {
                 return false;
             }
             if (isset($GLOBALS['latex_caption'])) {
-                if (!PMA_exportOutputHandler(
+                if (!Export::outputHandler(
                     '\\caption{'
                     . Util::expandUserString(
                         $GLOBALS['latex_data_continued_caption'],
@@ -382,11 +384,11 @@ class ExportLatex extends ExportPlugin
                     return false;
                 }
             }
-            if (!PMA_exportOutputHandler($buffer . '\\endhead \\endfoot' . $crlf)) {
+            if (!Export::outputHandler($buffer . '\\endhead \\endfoot' . $crlf)) {
                 return false;
             }
         } else {
-            if (!PMA_exportOutputHandler('\\\\ \hline')) {
+            if (!Export::outputHandler('\\\\ \hline')) {
                 return false;
             }
         }
@@ -415,13 +417,13 @@ class ExportLatex extends ExportPlugin
                 }
             }
             $buffer .= ' \\\\ \\hline ' . $crlf;
-            if (!PMA_exportOutputHandler($buffer)) {
+            if (!Export::outputHandler($buffer)) {
                 return false;
             }
         }
 
         $buffer = ' \\end{longtable}' . $crlf;
-        if (!PMA_exportOutputHandler($buffer)) {
+        if (!Export::outputHandler($buffer)) {
             return false;
         }
 
@@ -464,7 +466,7 @@ class ExportLatex extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -494,7 +496,7 @@ class ExportLatex extends ExportPlugin
         $GLOBALS['dbi']->selectDb($db);
 
         // Check if we can use Relations
-        list($res_rel, $have_rel) = PMA_getRelationsAndStatus(
+        list($res_rel, $have_rel) = Relation::getRelationsAndStatus(
             $do_relation && !empty($cfgRelation['relation']),
             $db,
             $table
@@ -504,7 +506,7 @@ class ExportLatex extends ExportPlugin
          */
         $buffer = $crlf . '%' . $crlf . '% ' . __('Structure:') . ' '
             . $table_alias . $crlf . '%' . $crlf . ' \\begin{longtable}{';
-        if (!PMA_exportOutputHandler($buffer)) {
+        if (!Export::outputHandler($buffer)) {
             return false;
         }
 
@@ -530,7 +532,7 @@ class ExportLatex extends ExportPlugin
         }
         if ($do_comments) {
             $header .= ' & \\multicolumn{1}{|c|}{\\textbf{' . __('Comments') . '}}';
-            $comments = PMA_getComments($db, $table);
+            $comments = Relation::getComments($db, $table);
         }
         if ($do_mime && $cfgRelation['mimework']) {
             $header .= ' & \\multicolumn{1}{|c|}{\\textbf{MIME}}';
@@ -573,7 +575,7 @@ class ExportLatex extends ExportPlugin
         }
         $buffer .= $header . ' \\\\ \\hline \\hline \\endhead \\endfoot ' . $crlf;
 
-        if (!PMA_exportOutputHandler($buffer)) {
+        if (!Export::outputHandler($buffer)) {
             return false;
         }
 
@@ -646,14 +648,14 @@ class ExportLatex extends ExportPlugin
             $buffer = str_replace("\000", ' & ', $local_buffer);
             $buffer .= ' \\\\ \\hline ' . $crlf;
 
-            if (!PMA_exportOutputHandler($buffer)) {
+            if (!Export::outputHandler($buffer)) {
                 return false;
             }
         } // end while
 
         $buffer = ' \\end{longtable}' . $crlf;
 
-        return PMA_exportOutputHandler($buffer);
+        return Export::outputHandler($buffer);
     } // end of the 'exportStructure' method
 
     /**

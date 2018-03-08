@@ -199,9 +199,9 @@ class ThemeManager
         // Allow different theme per server
         if (isset($GLOBALS['server']) && $this->per_server) {
             return $this->cookie_name . '-' . $GLOBALS['server'];
-        } else {
-            return $this->cookie_name;
         }
+
+        return $this->cookie_name;
     }
 
     /**
@@ -287,7 +287,7 @@ class ThemeManager
             // Skip non dirs, . and ..
             if ($PMA_Theme == '.'
                 || $PMA_Theme == '..'
-                || ! is_dir($this->_themes_path . $PMA_Theme)
+                || ! @is_dir($this->_themes_path . $PMA_Theme)
             ) {
                 continue;
             }
@@ -318,11 +318,7 @@ class ThemeManager
      */
     public function checkTheme($theme)
     {
-        if (! array_key_exists($theme, $this->themes)) {
-            return false;
-        }
-
-        return true;
+        return array_key_exists($theme, $this->themes);
     }
 
     /**
@@ -427,11 +423,6 @@ class ThemeManager
     public static function initializeTheme()
     {
         $tmanager = self::getInstance();
-
-        if (isset($_REQUEST['set_theme'])) {
-            // if user selected a theme
-            $tmanager->setActiveTheme($_REQUEST['set_theme']);
-        }
 
         /**
          * the theme object

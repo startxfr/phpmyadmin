@@ -10,6 +10,7 @@ namespace PhpMyAdmin;
 use PhpMyAdmin\Config;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\Message;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Response;
 use PhpMyAdmin\Sanitize;
 use PhpMyAdmin\Scripts;
@@ -97,12 +98,12 @@ class Footer
      *
      * @return object Reference passed object
      */
-    private static function _removeRecursion(&$object, $stack = array())
+    private static function _removeRecursion(&$object, array $stack = array())
     {
         if ((is_object($object) || is_array($object)) && $object) {
             if ($object instanceof Traversable) {
                 $object = "***ITERATOR***";
-            } else if (!in_array($object, $stack, true)) {
+            } elseif (!in_array($object, $stack, true)) {
                 $stack[] = $object;
                 foreach ($object as &$subobject) {
                     self::_removeRecursion($subobject, $stack);
@@ -144,9 +145,9 @@ class Footer
      */
     public function getSelfUrl()
     {
-        $db = ! empty($GLOBALS['db']) ? $GLOBALS['db'] : '';
-        $table = ! empty($GLOBALS['table']) ? $GLOBALS['table'] : '';
-        $target = ! empty($_REQUEST['target']) ? $_REQUEST['target'] : '';
+        $db = isset($GLOBALS['db']) && strlen($GLOBALS['db']) ? $GLOBALS['db'] : '';
+        $table = isset($GLOBALS['table']) && strlen($GLOBALS['table']) ? $GLOBALS['table'] : '';
+        $target = isset($_REQUEST['target']) && strlen($_REQUEST['target']) ? $_REQUEST['target'] : '';
         $params = array(
             'db' => $db,
             'table' => $table,
@@ -200,7 +201,7 @@ class Footer
             . ' title="' . __('Open new phpMyAdmin window') . '" target="_blank" rel="noopener noreferrer">';
         if (Util::showIcons('TabsMode')) {
             $retval .= Util::getImage(
-                'window-new.png',
+                'window-new',
                 __('Open new phpMyAdmin window')
             );
         } else {
@@ -241,12 +242,10 @@ class Footer
         if (! Core::isValid($_REQUEST['no_history'])
             && empty($GLOBALS['error_message'])
             && ! empty($GLOBALS['sql_query'])
-            && (isset($GLOBALS['dbi'])
-            && ($GLOBALS['dbi']->getLink()
-            || isset($GLOBALS['controllink'])
-            && $GLOBALS['controllink']))
+            && isset($GLOBALS['dbi'])
+            && $GLOBALS['dbi']->isUserType('logged')
         ) {
-            PMA_setHistory(
+            Relation::setHistory(
                 Core::ifSetOr($GLOBALS['db'], ''),
                 Core::ifSetOr($GLOBALS['table'], ''),
                 $GLOBALS['cfg']['Server']['user'],

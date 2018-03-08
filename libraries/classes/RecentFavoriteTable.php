@@ -7,7 +7,9 @@
  */
 namespace PhpMyAdmin;
 
+use PhpMyAdmin\DatabaseInterface;
 use PhpMyAdmin\Message;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Url;
 use PhpMyAdmin\Util;
 
@@ -103,7 +105,7 @@ class RecentFavoriteTable
             " WHERE `username` = '" . $GLOBALS['dbi']->escapeString($GLOBALS['cfg']['Server']['user']) . "'";
 
         $return = array();
-        $result = PMA_queryAsControlUser($sql_query, false);
+        $result = Relation::queryAsControlUser($sql_query, false);
         if ($result) {
             $row = $GLOBALS['dbi']->fetchArray($result);
             if (isset($row[0])) {
@@ -128,7 +130,7 @@ class RecentFavoriteTable
                     json_encode($this->_tables)
                 ) . "')";
 
-        $success = $GLOBALS['dbi']->tryQuery($sql_query, $GLOBALS['controllink']);
+        $success = $GLOBALS['dbi']->tryQuery($sql_query, DatabaseInterface::CONNECT_CONTROL);
 
         if (! $success) {
             $error_msg = '';
@@ -144,7 +146,7 @@ class RecentFavoriteTable
             $message = Message::error($error_msg);
             $message->addMessage(
                 Message::rawError(
-                    $GLOBALS['dbi']->getError($GLOBALS['controllink'])
+                    $GLOBALS['dbi']->getError(DatabaseInterface::CONNECT_CONTROL)
                 ),
                 '<br /><br />'
             );
@@ -212,7 +214,7 @@ class RecentFavoriteTable
                         . '" data-favtargetn="'
                         . md5($table['db'] . "." . $table['table'])
                         . '" >'
-                        . Util::getIcon('b_favorite.png')
+                        . Util::getIcon('b_favorite')
                         . '</a>';
 
                     $fav_params = array(
@@ -348,7 +350,7 @@ class RecentFavoriteTable
         if ($server_id == 0) {
             return '';
         }
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         // Not to show this once list is synchronized.
         if ($cfgRelation['favoritework'] && ! isset($_SESSION['tmpval']['favorites_synced'][$server_id])) {
             $params  = array('ajax_request' => true, 'favorite_table' => true,
@@ -381,7 +383,7 @@ class RecentFavoriteTable
      */
     private function _getPmaTable()
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         if (! empty($cfgRelation['db'])
             && ! empty($cfgRelation[$this->_tableType])
         ) {

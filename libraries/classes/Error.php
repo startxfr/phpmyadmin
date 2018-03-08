@@ -104,10 +104,15 @@ class Error extends Message
         $this->setFile($errfile);
         $this->setLine($errline);
 
-        $backtrace = debug_backtrace();
-        // remove last three calls:
-        // debug_backtrace(), handleError() and addError()
-        $backtrace = array_slice($backtrace, 3);
+        // This function can be disabled in php.ini
+        if (function_exists('debug_backtrace')) {
+            $backtrace = @debug_backtrace();
+            // remove last three calls:
+            // debug_backtrace(), handleError() and addError()
+            $backtrace = array_slice($backtrace, 3);
+        } else {
+            $backtrace = array();
+        }
 
         $this->setBacktrace($backtrace);
     }
@@ -119,7 +124,7 @@ class Error extends Message
      *
      * @return array
      */
-    public static function processBacktrace($backtrace)
+    public static function processBacktrace(array $backtrace)
     {
         $result = array();
 
@@ -173,7 +178,7 @@ class Error extends Message
      *
      * @return void
      */
-    public function setBacktrace($backtrace)
+    public function setBacktrace(array $backtrace)
     {
         $this->backtrace = self::processBacktrace($backtrace);
     }
@@ -330,7 +335,7 @@ class Error extends Message
      *
      * @return string formatted backtrace
      */
-    public static function formatBacktrace($backtrace, $separator, $lines)
+    public static function formatBacktrace(array $backtrace, $separator, $lines)
     {
         $retval = '';
 
@@ -357,7 +362,7 @@ class Error extends Message
      *
      * @return string
      */
-    public static function getFunctionCall($step, $separator)
+    public static function getFunctionCall(array $step, $separator)
     {
         $retval = $step['function'] . '(';
         if (isset($step['args'])) {
@@ -478,7 +483,7 @@ class Error extends Message
         $dest = @realpath($path);
 
         /* Probably affected by open_basedir */
-        if ($dest === FALSE) {
+        if ($dest === false) {
             return basename($path);
         }
 

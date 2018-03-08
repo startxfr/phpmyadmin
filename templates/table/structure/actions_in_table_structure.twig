@@ -1,4 +1,9 @@
 <td class="print_ignore"><ul class="table-structure-actions resizable-menu">
+    {% if hide_structure_actions %}
+        <li class="submenu shown">
+            <a href="#" class="tab nowrap">{{ Util_getIcon('b_more', 'More'|trans) }}</a>
+            <ul>
+    {% endif %}
     {# Add primary #}
     {% include 'table/structure/action_row_in_structure_table.twig' with {
         'type': type,
@@ -90,8 +95,8 @@
             or tbl_storage_engine == 'MARIA'
             or (tbl_storage_engine == 'INNODB' and mysql_int_version >= 50604)
         ) and ('text' in type or 'char' in type) %}
-        <a rel="samepage" class="ajax add_key add_fulltext_anchor" href="tbl_structure.php
-            {{- url_query|raw }}&amp;add_key=1&amp;sql_query=
+        <a rel="samepage" class="ajax add_key add_fulltext_anchor" href="tbl_structure.php"
+            data-post="{{- url_query|raw }}&amp;add_key=1&amp;sql_query=
             {{- ('ALTER TABLE ' ~ Util_backquote(table)
                 ~ ' ADD FULLTEXT(' ~ Util_backquote(row['Field'])
                 ~ ');')|url_encode }}&amp;message_to_show=
@@ -105,7 +110,7 @@
 
     {# Distinct value action #}
     <li class="browse nowrap">
-        <a href="sql.php{{ url_query|raw }}&amp;sql_query=
+        <a href="sql.php" data-post="{{ url_query|raw }}&amp;sql_query=
             {{- ('SELECT COUNT(*) AS ' ~ Util_backquote('Rows'|trans)
                 ~ ', ' ~ Util_backquote(row['Field'])
                 ~ ' FROM ' ~ Util_backquote(table)
@@ -119,13 +124,17 @@
         <li class="browse nowrap">
         {% if is_in_central_columns %}
             <a href="#" class="central_columns remove_button">
-                {{ Util_getIcon('centralColumns_delete.png', 'Remove from central columns'|trans) }}
+                {{ Util_getIcon('centralColumns_delete', 'Remove from central columns'|trans) }}
             </a>
         {% else %}
             <a href="#" class="central_columns add_button">
-                {{ Util_getIcon('centralColumns_add.png', 'Add to central columns'|trans) }}
+                {{ Util_getIcon('centralColumns_add', 'Add to central columns'|trans) }}
             </a>
         {% endif %}
+        </li>
+    {% endif %}
+    {% if hide_structure_actions %}
+            </ul>
         </li>
     {% endif %}
 </ul></td>

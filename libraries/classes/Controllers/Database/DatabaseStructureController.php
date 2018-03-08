@@ -1,31 +1,27 @@
 <?php
 /* vim: set expandtab sw=4 ts=4 sts=4: */
-
 /**
  * Holds the PhpMyAdmin\Controllers\Database\DatabaseStructureController
  *
  * @package PhpMyAdmin\Controllers
  */
-
 namespace PhpMyAdmin\Controllers\Database;
 
 use PhpMyAdmin\Charsets;
 use PhpMyAdmin\Config\PageSettings;
 use PhpMyAdmin\Controllers\DatabaseController;
 use PhpMyAdmin\Core;
+use PhpMyAdmin\Display\CreateTable;
 use PhpMyAdmin\Message;
 use PhpMyAdmin\RecentFavoriteTable;
+use PhpMyAdmin\Relation;
+use PhpMyAdmin\Replication;
 use PhpMyAdmin\Response;
 use PhpMyAdmin\Sanitize;
 use PhpMyAdmin\Template;
 use PhpMyAdmin\Tracker;
 use PhpMyAdmin\Util;
 use PhpMyAdmin\Url;
-
-require_once 'libraries/display_create_table.lib.php';
-require_once 'libraries/config/messages.inc.php';
-require_once 'libraries/config/user_preferences.forms.php';
-require_once 'libraries/config/page_settings.forms.php';
 
 /**
  * Handles database structure logic
@@ -123,7 +119,6 @@ class DatabaseStructureController extends DatabaseController
             array(
                 'db_structure.js',
                 'tbl_change.js',
-                'vendor/jquery/jquery-ui-timepicker-addon.js'
             )
         );
 
@@ -152,7 +147,7 @@ class DatabaseStructureController extends DatabaseController
                 Message::notice(__('No tables found in database.'))
             );
             if (empty($this->_db_is_system_schema)) {
-                $this->response->addHTML(PMA_getHtmlForCreateTable($this->db));
+                $this->response->addHTML(CreateTable::getHtml($this->db));
             }
             return;
         }
@@ -212,7 +207,7 @@ class DatabaseStructureController extends DatabaseController
         );
 
         if (empty($this->_db_is_system_schema)) {
-            $this->response->addHTML(PMA_getHtmlForCreateTable($this->db));
+            $this->response->addHTML(CreateTable::getHtml($this->db));
         }
     }
 
@@ -234,7 +229,7 @@ class DatabaseStructureController extends DatabaseController
 
         // Request for Synchronization of favorite tables.
         if (isset($_REQUEST['sync_favorite_tables'])) {
-            $cfgRelation = PMA_getRelationsParam();
+            $cfgRelation = Relation::getRelationsParam();
             if ($cfgRelation['favoritework']) {
                 $this->synchronizeFavoriteTables($fav_instance, $user, $favorite_tables);
             }
@@ -278,6 +273,12 @@ class DatabaseStructureController extends DatabaseController
             );
             return;
         }
+        // Check if current table is already in favorite list.
+        $favParams = array('db' => $this->db,
+            'ajax_request' => true,
+            'favorite_table' => $favorite_table,
+            (($already_favorite ? 'remove' : 'add') . '_favorite') => true
+        );
         $this->response->addJSON(
             array(
                 'user' => $user,
@@ -286,12 +287,11 @@ class DatabaseStructureController extends DatabaseController
                 'anchor' => Template::get('database/structure/favorite_anchor')
                     ->render(
                         array(
-                            'db' => $this->db,
-                            'current_table' => array(
-                                'TABLE_NAME' => $favorite_table
-                            ),
+                            'table_name_hash' => md5($favorite_table),
+                            'db_table_name_hash' => md5($this->db . "." . $favorite_table),
+                            'fav_params' => $favParams,
+                            'already_favorite' => $already_favorite,
                             'titles' => $titles,
-                            'already_favorite' => $already_favorite
                         )
                     )
             )
@@ -370,22 +370,27 @@ class DatabaseStructureController extends DatabaseController
     {
         // filtering
         $this->response->addHTML(
-            Template::get('filter')->render(array('filter_value'=>''))
+            Template::get('filter')->render(array('filter_value' => ''))
         );
         // table form
         $this->response->addHTML(
-            Template::get('database/structure/table_header')
-                ->render(
-                    array(
-                        'db'                  => $this->db,
-                        'db_is_system_schema' => $this->_db_is_system_schema,
-                        'replication'         => $GLOBALS['replication_info']['slave']['status'],
-                    )
-                )
+            Template::get('database/structure/table_header')->render([
+                'db' => $this->db,
+                'db_is_system_schema' => $this->_db_is_system_schema,
+                'replication' => $GLOBALS['replication_info']['slave']['status'],
+                'properties_num_columns' => $GLOBALS['cfg']['PropertiesNumColumns'],
+                'is_show_stats' => $GLOBALS['is_show_stats'],
+                'show_charset' => $GLOBALS['cfg']['ShowDbStructureCharset'],
+                'show_comment' => $GLOBALS['cfg']['ShowDbStructureComment'],
+                'show_creation' => $GLOBALS['cfg']['ShowDbStructureCreation'],
+                'show_last_update' => $GLOBALS['cfg']['ShowDbStructureLastUpdate'],
+                'show_last_check' => $GLOBALS['cfg']['ShowDbStructureLastCheck'],
+                'num_favorite_tables' => $GLOBALS['cfg']['NumFavoriteTables'],
+            ])
         );
 
         $i = $sum_entries = 0;
-        $overhead_check = '';
+        $overhead_check = false;
         $create_time_all = '';
         $update_time_all = '';
         $check_time_all = '';
@@ -404,6 +409,7 @@ class DatabaseStructureController extends DatabaseController
             $drop_query = '';
             $drop_message = '';
             $overhead = '';
+            $input_class = ['checkall'];
 
             $table_is_view = false;
             // Sets parameters for links
@@ -439,8 +445,8 @@ class DatabaseStructureController extends DatabaseController
                         . '<span>' . $formatted_overhead . '</span>&nbsp;'
                         . '<span class="unit">' . $overhead_unit . '</span>'
                         . '</a>' . "\n";
-                    $overhead_check .=
-                        "markAllRows('row_tbl_" . ($i + 1) . "');";
+                    $overhead_check = true;
+                    $input_class[] = 'tbl-overhead';
                 } else {
                     $overhead = '-';
                 }
@@ -603,13 +609,19 @@ class DatabaseStructureController extends DatabaseController
                 );
 
                 $this->response->addHTML(
-                    Template::get('database/structure/table_header')->render(
-                        array(
-                            'db' => $this->db,
-                            'db_is_system_schema' => $this->_db_is_system_schema,
-                            'replication' => $GLOBALS['replication_info']['slave']['status']
-                        )
-                    )
+                    Template::get('database/structure/table_header')->render([
+                        'db' => $this->db,
+                        'db_is_system_schema' => $this->_db_is_system_schema,
+                        'replication' => $GLOBALS['replication_info']['slave']['status'],
+                        'properties_num_columns' => $GLOBALS['cfg']['PropertiesNumColumns'],
+                        'is_show_stats' => $GLOBALS['is_show_stats'],
+                        'show_charset' => $GLOBALS['cfg']['ShowDbStructureCharset'],
+                        'show_comment' => $GLOBALS['cfg']['ShowDbStructureComment'],
+                        'show_creation' => $GLOBALS['cfg']['ShowDbStructureCreation'],
+                        'show_last_update' => $GLOBALS['cfg']['ShowDbStructureLastUpdate'],
+                        'show_last_check' => $GLOBALS['cfg']['ShowDbStructureLastCheck'],
+                        'num_favorite_tables' => $GLOBALS['cfg']['NumFavoriteTables'],
+                    ])
                 );
             }
 
@@ -625,6 +637,7 @@ class DatabaseStructureController extends DatabaseController
                         array(
                             'db'                    => $this->db,
                             'curr'                  => $i,
+                            'input_class'           => implode(' ', $input_class),
                             'table_is_view'         => $table_is_view,
                             'current_table'         => $current_table,
                             'browse_table_label'    => $browse_table_label,
@@ -653,12 +666,19 @@ class DatabaseStructureController extends DatabaseController
                             'is_show_stats'         => $this->_is_show_stats,
                             'ignored'               => $ignored,
                             'do'                    => $do,
-                            'colspan_for_structure' => $GLOBALS['colspan_for_structure'],
                             'approx_rows'           => $approx_rows,
                             'show_superscript'      => $show_superscript,
                             'already_favorite'      => $this->checkFavoriteTable(
                                 $current_table['TABLE_NAME']
                             ),
+                            'num_favorite_tables'   => $GLOBALS['cfg']['NumFavoriteTables'],
+                            'properties_num_columns' => $GLOBALS['cfg']['PropertiesNumColumns'],
+                            'limit_chars'            => $GLOBALS['cfg']['LimitChars'],
+                            'show_charset'           => $GLOBALS['cfg']['ShowDbStructureCharset'],
+                            'show_comment'           => $GLOBALS['cfg']['ShowDbStructureComment'],
+                            'show_creation'          => $GLOBALS['cfg']['ShowDbStructureCreation'],
+                            'show_last_update'       => $GLOBALS['cfg']['ShowDbStructureLastUpdate'],
+                            'show_last_check'        => $GLOBALS['cfg']['ShowDbStructureLastCheck'],
                         )
                     )
             );
@@ -687,7 +707,16 @@ class DatabaseStructureController extends DatabaseController
                     'create_time_all' => $create_time_all,
                     'update_time_all' => $update_time_all,
                     'check_time_all' => $check_time_all,
-                    'approx_rows' => $overall_approx_rows
+                    'approx_rows' => $overall_approx_rows,
+                    'num_favorite_tables' => $GLOBALS['cfg']['NumFavoriteTables'],
+                    'db' => $GLOBALS['db'],
+                    'properties_num_columns' => $GLOBALS['cfg']['PropertiesNumColumns'],
+                    'dbi' => $GLOBALS['dbi'],
+                    'show_charset' => $GLOBALS['cfg']['ShowDbStructureCharset'],
+                    'show_comment' => $GLOBALS['cfg']['ShowDbStructureComment'],
+                    'show_creation' => $GLOBALS['cfg']['ShowDbStructureCreation'],
+                    'show_last_update' => $GLOBALS['cfg']['ShowDbStructureLastUpdate'],
+                    'show_last_check' => $GLOBALS['cfg']['ShowDbStructureLastCheck'],
                 )
             )
         );
@@ -695,15 +724,15 @@ class DatabaseStructureController extends DatabaseController
 
         //check all
         $this->response->addHTML(
-            Template::get('database/structure/check_all_tables')->render(
-                array(
-                    'pmaThemeImage' => $GLOBALS['pmaThemeImage'],
-                    'text_dir' => $GLOBALS['text_dir'],
-                    'overhead_check' => $overhead_check,
-                    'db_is_system_schema' => $this->_db_is_system_schema,
-                    'hidden_fields' => $hidden_fields
-                )
-            )
+            Template::get('database/structure/check_all_tables')->render([
+                'pma_theme_image' => $GLOBALS['pmaThemeImage'],
+                'text_dir' => $GLOBALS['text_dir'],
+                'overhead_check' => $overhead_check,
+                'db_is_system_schema' => $this->_db_is_system_schema,
+                'hidden_fields' => $hidden_fields,
+                'disable_multi_table' => $GLOBALS['cfg']['DisableMultiTableMaintenance'],
+                'central_columns_work' => $GLOBALS['cfgRelation']['centralcolumnswork'],
+            ])
         );
         $this->response->addHTML('</form>'); //end of form
     }
@@ -746,7 +775,7 @@ class DatabaseStructureController extends DatabaseController
      *
      * @return array
      */
-    protected function isRowCountApproximated($current_table, $table_is_view)
+    protected function isRowCountApproximated(array $current_table, $table_is_view)
     {
         $approx_rows = false;
         $show_superscript = '';
@@ -850,7 +879,7 @@ class DatabaseStructureController extends DatabaseController
     protected function synchronizeFavoriteTables(
         $fav_instance,
         $user,
-        $favorite_tables
+        array $favorite_tables
     ) {
         $fav_instance_tables = $fav_instance->getTables();
 
@@ -903,13 +932,13 @@ class DatabaseStructureController extends DatabaseController
      *
      * @return bool
      */
-    protected function hasTable($db, $truename)
+    protected function hasTable(array $db, $truename)
     {
         foreach ($db as $db_table) {
-            if ($this->db == PMA_extractDbOrTable($db_table)
+            if ($this->db == Replication::extractDbOrTable($db_table)
                 && preg_match(
                     "@^" .
-                    preg_quote(mb_substr(PMA_extractDbOrTable($db_table, 'table'), 0, -1)) . "@",
+                    preg_quote(mb_substr(Replication::extractDbOrTable($db_table, 'table'), 0, -1)) . "@",
                     $truename
                 )
             ) {
@@ -930,7 +959,7 @@ class DatabaseStructureController extends DatabaseController
      * @internal param bool $table_is_view whether table is view or not
      */
     protected function getStuffForEngineTypeTable(
-        $current_table, $sum_size, $overhead_size
+        array $current_table, $sum_size, $overhead_size
     ) {
         $formatted_size = '-';
         $unit = '';
@@ -1022,7 +1051,7 @@ class DatabaseStructureController extends DatabaseController
      * @return array
      */
     protected function getValuesForAriaTable(
-        $current_table, $sum_size, $overhead_size, $formatted_size, $unit,
+        array $current_table, $sum_size, $overhead_size, $formatted_size, $unit,
         $formatted_overhead, $overhead_unit
     ) {
         if ($this->_db_is_system_schema) {
@@ -1063,7 +1092,7 @@ class DatabaseStructureController extends DatabaseController
      * @return array
      */
     protected function getValuesForInnodbTable(
-        $current_table, $sum_size
+        array $current_table, $sum_size
     ) {
         $formatted_size = $unit = '';
 

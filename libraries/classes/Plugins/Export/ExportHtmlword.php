@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -16,6 +17,7 @@ use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyRootGroup;
 use PhpMyAdmin\Properties\Options\Items\BoolPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\RadioPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\TextPropertyItem;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Util;
 
@@ -106,7 +108,7 @@ class ExportHtmlword extends ExportPlugin
     {
         global $charset;
 
-        return PMA_exportOutputHandler(
+        return Export::outputHandler(
             '<html xmlns:o="urn:schemas-microsoft-com:office:office"
             xmlns:x="urn:schemas-microsoft-com:office:word"
             xmlns="http://www.w3.org/TR/REC-html40">
@@ -129,7 +131,7 @@ class ExportHtmlword extends ExportPlugin
      */
     public function exportFooter()
     {
-        return PMA_exportOutputHandler('</body></html>');
+        return Export::outputHandler('</body></html>');
     }
 
     /**
@@ -146,7 +148,7 @@ class ExportHtmlword extends ExportPlugin
             $db_alias = $db;
         }
 
-        return PMA_exportOutputHandler(
+        return Export::outputHandler(
             '<h1>' . __('Database') . ' ' . htmlspecialchars($db_alias) . '</h1>'
         );
     }
@@ -195,7 +197,7 @@ class ExportHtmlword extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $what;
 
@@ -203,7 +205,7 @@ class ExportHtmlword extends ExportPlugin
         $table_alias = $table;
         $this->initAlias($aliases, $db_alias, $table_alias);
 
-        if (!PMA_exportOutputHandler(
+        if (!Export::outputHandler(
             '<h2>'
             . __('Dumping data for table') . ' ' . htmlspecialchars($table_alias)
             . '</h2>'
@@ -211,7 +213,7 @@ class ExportHtmlword extends ExportPlugin
         ) {
             return false;
         }
-        if (!PMA_exportOutputHandler(
+        if (!Export::outputHandler(
             '<table class="width100" cellspacing="1">'
         )
         ) {
@@ -221,7 +223,7 @@ class ExportHtmlword extends ExportPlugin
         // Gets the data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);
@@ -240,7 +242,7 @@ class ExportHtmlword extends ExportPlugin
                     . '</strong></td>';
             } // end for
             $schema_insert .= '</tr>';
-            if (!PMA_exportOutputHandler($schema_insert)) {
+            if (!Export::outputHandler($schema_insert)) {
                 return false;
             }
         } // end if
@@ -261,16 +263,13 @@ class ExportHtmlword extends ExportPlugin
                     . '</td>';
             } // end for
             $schema_insert .= '</tr>';
-            if (!PMA_exportOutputHandler($schema_insert)) {
+            if (!Export::outputHandler($schema_insert)) {
                 return false;
             }
         } // end while
         $GLOBALS['dbi']->freeResult($result);
-        if (!PMA_exportOutputHandler('</table>')) {
-            return false;
-        }
 
-        return true;
+        return Export::outputHandler('</table>');
     }
 
     /**
@@ -357,7 +356,7 @@ class ExportHtmlword extends ExportPlugin
         $do_comments,
         $do_mime,
         $view = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         // set $cfgRelation here, because there is a chance that it's modified
         // since the class initialization
@@ -371,7 +370,7 @@ class ExportHtmlword extends ExportPlugin
         $GLOBALS['dbi']->selectDb($db);
 
         // Check if we can use Relations
-        list($res_rel, $have_rel) = PMA_getRelationsAndStatus(
+        list($res_rel, $have_rel) = Relation::getRelationsAndStatus(
             $do_relation && !empty($cfgRelation['relation']),
             $db,
             $table
@@ -404,7 +403,7 @@ class ExportHtmlword extends ExportPlugin
             $schema_insert .= '<td class="print"><strong>'
                 . __('Comments')
                 . '</strong></td>';
-            $comments = PMA_getComments($db, $table);
+            $comments = Relation::getComments($db, $table);
         }
         if ($do_mime && $cfgRelation['mimework']) {
             $schema_insert .= '<td class="print"><strong>'
@@ -547,7 +546,7 @@ class ExportHtmlword extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -604,7 +603,7 @@ class ExportHtmlword extends ExportPlugin
             $dump .= $this->getTableDefStandIn($db, $table, $crlf, $aliases);
         } // end switch
 
-        return PMA_exportOutputHandler($dump);
+        return Export::outputHandler($dump);
     }
 
     /**
@@ -617,8 +616,8 @@ class ExportHtmlword extends ExportPlugin
      * @return string Formatted column definition
      */
     protected function formatOneColumnDefinition(
-        $column,
-        $unique_keys,
+        array $column,
+        array $unique_keys,
         $col_alias = ''
     ) {
         if (empty($col_alias)) {

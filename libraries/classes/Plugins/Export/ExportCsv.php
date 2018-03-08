@@ -10,6 +10,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -216,7 +217,7 @@ class ExportCsv extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $what, $csv_terminated, $csv_separator, $csv_enclosed, $csv_escaped;
 
@@ -227,7 +228,7 @@ class ExportCsv extends ExportPlugin
         // Gets the data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);
@@ -255,7 +256,7 @@ class ExportCsv extends ExportPlugin
                 $schema_insert .= $csv_separator;
             } // end for
             $schema_insert = trim(mb_substr($schema_insert, 0, -1));
-            if (!PMA_exportOutputHandler($schema_insert . $csv_terminated)) {
+            if (!Export::outputHandler($schema_insert . $csv_terminated)) {
                 return false;
             }
         } // end if
@@ -320,7 +321,7 @@ class ExportCsv extends ExportPlugin
                 }
             } // end for
 
-            if (!PMA_exportOutputHandler($schema_insert . $csv_terminated)) {
+            if (!Export::outputHandler($schema_insert . $csv_terminated)) {
                 return false;
             }
         } // end while

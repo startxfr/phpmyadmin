@@ -18,6 +18,7 @@
 namespace PhpMyAdmin;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Util;
 
 /**
@@ -210,7 +211,7 @@ class Transformations
     }
 
     /**
-     * Fixups old MIME or tranformation name to new one
+     * Fixups old MIME or transformation name to new one
      *
      * - applies some hardcoded fixups
      * - adds spaces after _ and numbers
@@ -249,9 +250,9 @@ class Transformations
      */
     public static function getMIME($db, $table, $strict = false, $fullName = false)
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
 
-        if (! $cfgRelation['commwork']) {
+        if (! $cfgRelation['mimework']) {
             return false;
         }
 
@@ -278,7 +279,7 @@ class Transformations
                   OR `input_transformation` != \'\'
                   OR `input_transformation_options` != \'\'' : '') . ')';
         $result = $GLOBALS['dbi']->fetchResult(
-            $com_qry, 'column_name', null, $GLOBALS['controllink']
+            $com_qry, 'column_name', null, DatabaseInterface::CONNECT_CONTROL
         );
 
         foreach ($result as $column => $values) {
@@ -293,7 +294,7 @@ class Transformations
             $dir = explode('/', $values['transformation']);
             $subdir = '';
             if (count($dir) === 2) {
-                $subdir = $dir[0] . '/';
+                $subdir = ucfirst($dir[0]) . '/';
                 $values['transformation'] = $dir[1];
             }
 
@@ -326,15 +327,24 @@ class Transformations
     public static function setMIME($db, $table, $key, $mimetype, $transformation,
         $transformationOpts, $inputTransform, $inputTransformOpts, $forcedelete = false
     ) {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
 
-        if (! $cfgRelation['commwork']) {
+        if (! $cfgRelation['mimework']) {
             return false;
         }
 
         // lowercase mimetype & transformation
         $mimetype = mb_strtolower($mimetype);
         $transformation = mb_strtolower($transformation);
+
+        // Do we have any parameter to set?
+        $has_value = (
+            strlen($mimetype) > 0 ||
+            strlen($transformation) > 0 ||
+            strlen($transformationOpts) > 0 ||
+            strlen($inputTransform) > 0 ||
+            strlen($inputTransformOpts) > 0
+        );
 
         $test_qry = '
              SELECT `mimetype`,
@@ -345,7 +355,7 @@ class Transformations
                 AND `table_name`  = \'' . $GLOBALS['dbi']->escapeString($table) . '\'
                 AND `column_name` = \'' . $GLOBALS['dbi']->escapeString($key) . '\'';
 
-        $test_rs   = PMA_queryAsControlUser(
+        $test_rs   = Relation::queryAsControlUser(
             $test_qry, true, DatabaseInterface::QUERY_STORE
         );
 
@@ -353,12 +363,7 @@ class Transformations
             $row = @$GLOBALS['dbi']->fetchAssoc($test_rs);
             $GLOBALS['dbi']->freeResult($test_rs);
 
-            if (! $forcedelete
-                && (strlen($mimetype) > 0
-                || strlen($transformation) > 0
-                || strlen($transformationOpts) > 0
-                || strlen($row['comment']) > 0)
-            ) {
+            if (! $forcedelete && ($has_value || strlen($row['comment']) > 0)) {
                 $upd_query = 'UPDATE '
                     . Util::backquote($cfgRelation['db']) . '.'
                     . Util::backquote($cfgRelation['column_info'])
@@ -384,10 +389,7 @@ class Transformations
                     . '\'
                   AND `column_name` = \'' . $GLOBALS['dbi']->escapeString($key)
                     . '\'';
-        } elseif (strlen($mimetype) > 0
-            || strlen($transformation) > 0
-            || strlen($transformationOpts) > 0
-        ) {
+        } elseif ($has_value) {
 
             $upd_query = 'INSERT INTO '
                 . Util::backquote($cfgRelation['db'])
@@ -407,10 +409,10 @@ class Transformations
         }
 
         if (isset($upd_query)) {
-            return PMA_queryAsControlUser($upd_query);
-        } else {
-            return false;
+            return Relation::queryAsControlUser($upd_query);
         }
+
+        return false;
     } // end of 'setMIME()' function
 
 
@@ -430,7 +432,7 @@ class Transformations
      */
     public static function clear($db, $table = '', $column = '')
     {
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
 
         if (! isset($cfgRelation['column_info'])) {
             return false;
@@ -447,7 +449,7 @@ class Transformations
                 . '`table_name` = \'' . $table . '\' AND '
                 . '`column_name` = \'' . $column . '\' ';
 
-        } else if ($table != '') {
+        } elseif ($table != '') {
 
             $delete_sql .= '`db_name` = \'' . $db . '\' AND '
                 . '`table_name` = \'' . $table . '\' ';

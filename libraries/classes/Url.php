@@ -57,11 +57,6 @@ class Url
         if (empty($_COOKIE['pma_lang']) && ! empty($GLOBALS['lang'])) {
             $params['lang'] = $GLOBALS['lang'];
         }
-        if (empty($_COOKIE['pma_collation_connection'])
-            && ! empty($GLOBALS['collation_connection'])
-        ) {
-            $params['collation_connection'] = $GLOBALS['collation_connection'];
-        }
 
         if (! is_array($skip)) {
             if (isset($params[$skip])) {
@@ -108,7 +103,7 @@ class Url
      *
      * @return string form fields of type hidden
      */
-    public static function getHiddenFields($values, $pre = '')
+    public static function getHiddenFields(array $values, $pre = '')
     {
         $fields = '';
 
@@ -216,11 +211,6 @@ class Url
 
         if (empty($_COOKIE['pma_lang']) && ! empty($GLOBALS['lang'])) {
             $params['lang'] = $GLOBALS['lang'];
-        }
-        if (empty($_COOKIE['pma_collation_connection'])
-            && ! empty($GLOBALS['collation_connection'])
-        ) {
-            $params['collation_connection'] = $GLOBALS['collation_connection'];
         }
 
         $query = http_build_query($params, null, $separator);

@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\OpenDocument;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
@@ -17,6 +18,7 @@ use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyRootGroup;
 use PhpMyAdmin\Properties\Options\Items\BoolPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\RadioPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\TextPropertyItem;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Util;
 
@@ -165,7 +167,7 @@ class ExportOdt extends ExportPlugin
         $GLOBALS['odt_buffer'] .= '</office:text>'
             . '</office:body>'
             . '</office:document-content>';
-        if (!PMA_exportOutputHandler(
+        if (!Export::outputHandler(
             OpenDocument::create(
                 'application/vnd.oasis.opendocument.text',
                 $GLOBALS['odt_buffer']
@@ -244,7 +246,7 @@ class ExportOdt extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $what;
 
@@ -254,7 +256,7 @@ class ExportOdt extends ExportPlugin
         // Gets the data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);
@@ -439,7 +441,7 @@ class ExportOdt extends ExportPlugin
         $show_dates = false,
         $add_semicolon = true,
         $view = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $cfgRelation;
 
@@ -452,7 +454,7 @@ class ExportOdt extends ExportPlugin
         $GLOBALS['dbi']->selectDb($db);
 
         // Check if we can use Relations
-        list($res_rel, $have_rel) = PMA_getRelationsAndStatus(
+        list($res_rel, $have_rel) = Relation::getRelationsAndStatus(
             $do_relation && !empty($cfgRelation['relation']),
             $db,
             $table
@@ -497,7 +499,7 @@ class ExportOdt extends ExportPlugin
             $GLOBALS['odt_buffer'] .= '<table:table-cell office:value-type="string">'
                 . '<text:p>' . __('Comments') . '</text:p>'
                 . '</table:table-cell>';
-            $comments = PMA_getComments($db, $table);
+            $comments = Relation::getComments($db, $table);
         }
         if ($do_mime && $cfgRelation['mimework']) {
             $GLOBALS['odt_buffer'] .= '<table:table-cell office:value-type="string">'
@@ -518,7 +520,7 @@ class ExportOdt extends ExportPlugin
                 $col_as
             );
             if ($do_relation && $have_rel) {
-                $foreigner = PMA_searchColumnInForeigners($res_rel, $field_name);
+                $foreigner = Relation::searchColumnInForeigners($res_rel, $field_name);
                 if ($foreigner) {
                     $rtable = $foreigner['foreign_table'];
                     $rfield = $foreigner['foreign_field'];
@@ -588,7 +590,7 @@ class ExportOdt extends ExportPlugin
      *
      * @return bool true
      */
-    protected function getTriggers($db, $table, $aliases = array())
+    protected function getTriggers($db, $table, array $aliases = array())
     {
         $db_alias = $db;
         $table_alias = $table;
@@ -677,7 +679,7 @@ class ExportOdt extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;

@@ -8,6 +8,7 @@
  */
 namespace PhpMyAdmin\Plugins\Export;
 
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Plugins\Export\Helpers\TableProperty;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
@@ -186,7 +187,7 @@ class ExportCodegen extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $CG_FORMATS = $this->_getCgFormats();
         $CG_HANDLERS = $this->_getCgHandlers();
@@ -195,12 +196,12 @@ class ExportCodegen extends ExportPlugin
         if (isset($CG_FORMATS[$format])) {
             $method = $CG_HANDLERS[$format];
 
-            return PMA_exportOutputHandler(
+            return Export::outputHandler(
                 $this->$method($db, $table, $crlf, $aliases)
             );
         }
 
-        return PMA_exportOutputHandler(sprintf("%s is not supported.", $format));
+        return Export::outputHandler(sprintf("%s is not supported.", $format));
     }
 
     /**
@@ -236,7 +237,7 @@ class ExportCodegen extends ExportPlugin
      *
      * @return string containing C# code lines, separated by "\n"
      */
-    private function _handleNHibernateCSBody($db, $table, $crlf, $aliases = array())
+    private function _handleNHibernateCSBody($db, $table, $crlf, array $aliases = array())
     {
         $db_alias = $db;
         $table_alias = $table;
@@ -339,7 +340,7 @@ class ExportCodegen extends ExportPlugin
         $db,
         $table,
         $crlf,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -414,7 +415,7 @@ class ExportCodegen extends ExportPlugin
      *
      * @return void
      */
-    private function _setCgFormats($CG_FORMATS)
+    private function _setCgFormats(array $CG_FORMATS)
     {
         $this->_cgFormats = $CG_FORMATS;
     }
@@ -436,7 +437,7 @@ class ExportCodegen extends ExportPlugin
      *
      * @return void
      */
-    private function _setCgHandlers($CG_HANDLERS)
+    private function _setCgHandlers(array $CG_HANDLERS)
     {
         $this->_cgHandlers = $CG_HANDLERS;
     }

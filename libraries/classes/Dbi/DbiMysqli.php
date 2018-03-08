@@ -14,13 +14,6 @@ if (! defined('PHPMYADMIN')) {
     exit;
 }
 
-require_once 'libraries/dbi/dbi_extension.lib.php';
-
-/**
- * MySQL client API
- */
-PMA_defineClientAPI(mysqli_get_client_info());
-
 /**
  * some PHP versions are reporting extra messages like "No index used in query"
  */
@@ -57,6 +50,22 @@ if (! defined('MYSQLI_TYPE_JSON')) {
  */
 class DbiMysqli implements DbiExtension
 {
+    static private $pma_mysqli_flag_names = array(
+        MYSQLI_NUM_FLAG => 'num',
+        MYSQLI_PART_KEY_FLAG => 'part_key',
+        MYSQLI_SET_FLAG => 'set',
+        MYSQLI_TIMESTAMP_FLAG => 'timestamp',
+        MYSQLI_AUTO_INCREMENT_FLAG => 'auto_increment',
+        MYSQLI_ENUM_FLAG => 'enum',
+        MYSQLI_ZEROFILL_FLAG => 'zerofill',
+        MYSQLI_UNSIGNED_FLAG => 'unsigned',
+        MYSQLI_BLOB_FLAG => 'blob',
+        MYSQLI_MULTIPLE_KEY_FLAG => 'multiple_key',
+        MYSQLI_UNIQUE_KEY_FLAG => 'unique_key',
+        MYSQLI_PRI_KEY_FLAG => 'primary_key',
+        MYSQLI_NOT_NULL_FLAG => 'not_null',
+    );
+
     /**
      * connects to the database server
      *
@@ -67,7 +76,7 @@ class DbiMysqli implements DbiExtension
      * @return mixed false on error or a mysqli object on success
      */
     public function connect(
-        $user, $password, $server
+        $user, $password, array $server
     ) {
         if ($server) {
             $server['host'] = (empty($server['host']))
@@ -144,18 +153,20 @@ class DbiMysqli implements DbiExtension
 
         if ($return_value === false || is_null($return_value)) {
             /*
-             * Switch to SSL if server asked us to do so
+             * Switch to SSL if server asked us to do so, unfortunately
+             * there are more ways MySQL server can tell this:
              *
              * - MySQL 8.0 and newer should return error 3159
-             * - older use #2001 - SSL Connection is required. Please specify SSL options and retry.
+             * - #2001 - SSL Connection is required. Please specify SSL options and retry.
+             * - #9002 - SSL connection is required. Please specify SSL options and retry.
              */
             $error_number = mysqli_connect_errno();
             $error_message = mysqli_connect_error();
             if (! $server['ssl'] && ($error_number == 3159 ||
-                ($error_number == 2001 && stripos($error_message, 'SSL Connection is required') !== false))
+                (($error_number == 2001 || $error_number == 9002) && stripos($error_message, 'SSL Connection is required') !== false))
             ) {
                     trigger_error(
-                        _('SSL connection enforced by server, automatically enabling it.'),
+                        __('SSL connection enforced by server, automatically enabling it.'),
                         E_USER_WARNING
                     );
                     $server['ssl'] = true;
@@ -445,7 +456,7 @@ class DbiMysqli implements DbiExtension
         // MySQL returns MYSQLI_TYPE_STRING for CHAR
         // and MYSQLI_TYPE_CHAR === MYSQLI_TYPE_TINY
         // so this would override TINYINT and mark all TINYINT as string
-        // https://sourceforge.net/p/phpmyadmin/bugs/2205/
+        // see https://github.com/phpmyadmin/phpmyadmin/issues/8569
         //$typeAr[MYSQLI_TYPE_CHAR]        = 'string';
         $typeAr[MYSQLI_TYPE_GEOMETRY]    = 'geometry';
         $typeAr[MYSQLI_TYPE_BIT]         = 'bit';
@@ -540,7 +551,7 @@ class DbiMysqli implements DbiExtension
         $charsetnr = $f->charsetnr;
         $f = $f->flags;
         $flags = array();
-        foreach ($GLOBALS['pma_mysqli_flag_names'] as $flag => $name) {
+        foreach (self::$pma_mysqli_flag_names as $flag => $name) {
             if ($f & $flag) {
                 $flags[] = $name;
             }

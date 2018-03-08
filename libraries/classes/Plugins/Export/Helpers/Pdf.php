@@ -10,6 +10,7 @@ namespace PhpMyAdmin\Plugins\Export\Helpers;
 
 use PhpMyAdmin\DatabaseInterface;
 use PhpMyAdmin\Pdf as PdfLib;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Util;
 use TCPDF_STATIC;
@@ -74,12 +75,9 @@ class Pdf extends PdfLib
 
             return true;
         }
-        if ($current_page != $this->page) {
-            // account for columns mode
-            return true;
-        }
 
-        return false;
+        // account for columns mode
+        return $current_page != $this->page;
     }
 
     /**
@@ -260,7 +258,7 @@ class Pdf extends PdfLib
      *
      * @return void
      */
-    public function setAttributes($attr = array())
+    public function setAttributes(array $attr = array())
     {
         foreach ($attr as $key => $val) {
             $this->$key = $val;
@@ -435,7 +433,7 @@ class Pdf extends PdfLib
         $do_comments,
         $do_mime,
         $view = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         // set $cfgRelation here, because there is a chance that it's modified
         // since the class initialization
@@ -463,7 +461,7 @@ class Pdf extends PdfLib
         if ($do_relation) {
             // Find which tables are related with the current one and write it in
             // an array
-            $res_rel = PMA_getForeigners($db, $table);
+            $res_rel = Relation::getForeigners($db, $table);
             $have_rel = !empty($res_rel);
         } else {
             $have_rel = false;
@@ -516,7 +514,7 @@ class Pdf extends PdfLib
         // Now let's start to write the table structure
 
         if ($do_comments) {
-            $comments = PMA_getComments($db, $table);
+            $comments = Relation::getComments($db, $table);
         }
         if ($do_mime && $cfgRelation['mimework']) {
             $mime_map = Transformations::getMIME($db, $table, true);
@@ -672,7 +670,7 @@ class Pdf extends PdfLib
          */
         $this->results = $GLOBALS['dbi']->query(
             $query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $this->numFields = $GLOBALS['dbi']->numFields($this->results);
@@ -801,7 +799,7 @@ class Pdf extends PdfLib
 
         $this->results = $GLOBALS['dbi']->query(
             $query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $this->setY($this->tMargin);

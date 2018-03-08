@@ -15,12 +15,13 @@
 namespace PhpMyAdmin\Config;
 
 use PhpMyAdmin\Config\ConfigFile;
+use PhpMyAdmin\Config\Descriptions;
 use PhpMyAdmin\Config\Form;
+use PhpMyAdmin\Config\FormDisplayTemplate;
+use PhpMyAdmin\Config\Forms\User\UserFormList;
 use PhpMyAdmin\Config\Validator;
 use PhpMyAdmin\Sanitize;
 use PhpMyAdmin\Util;
-
-require_once './libraries/config/FormDisplay.tpl.php';
 
 /**
  * Form management class, displays and processes forms
@@ -226,14 +227,11 @@ class FormDisplay
 
         foreach ($this->_forms as $form) {
             /* @var $form Form */
-            $form_desc = isset($GLOBALS["strConfigForm_{$form->name}_desc"])
-                ? PMA_lang("Form_{$form->name}_desc")
-                : '';
             $form_errors = isset($this->_errors[$form->name])
                 ? $this->_errors[$form->name] : null;
-            $htmlOutput .= PMA_displayFieldsetTop(
-                PMA_lang("Form_$form->name"),
-                $form_desc,
+            $htmlOutput .= FormDisplayTemplate::displayFieldsetTop(
+                Descriptions::get("Form_{$form->name}"),
+                Descriptions::get("Form_{$form->name}", 'desc'),
                 $form_errors,
                 array('id' => $form->name)
             );
@@ -259,10 +257,10 @@ class FormDisplay
                 );
                 // register JS validators for this field
                 if (isset($validators[$path])) {
-                    PMA_addJsValidate($translated_path, $validators[$path], $js);
+                    FormDisplayTemplate::addJsValidate($translated_path, $validators[$path], $js);
                 }
             }
-            $htmlOutput .= PMA_displayFieldsetBottom($show_buttons);
+            $htmlOutput .= FormDisplayTemplate::displayFieldsetBottom($show_buttons);
         }
         return $htmlOutput;
     }
@@ -270,13 +268,13 @@ class FormDisplay
     /**
      * Outputs HTML for forms
      *
-     * @param bool   $tabbed_form          if true, use a form with tabs
-     * @param bool   $show_restore_default whether show "restore default" button
-     *                                     besides the input field
-     * @param bool   $show_buttons         whether show submit and reset button
-     * @param string $form_action          action attribute for the form
-     * @param array  $hidden_fields        array of form hidden fields (key: field
-     *                                     name)
+     * @param bool       $tabbed_form          if true, use a form with tabs
+     * @param bool       $show_restore_default whether show "restore default" button
+     *                                         besides the input field
+     * @param bool       $show_buttons         whether show submit and reset button
+     * @param string     $form_action          action attribute for the form
+     * @param array|null $hidden_fields        array of form hidden fields (key: field
+     *                                         name)
      *
      * @return string HTML for forms
      */
@@ -294,14 +292,14 @@ class FormDisplay
         $js = array();
         $js_default = array();
 
-        $htmlOutput .= PMA_displayFormTop($form_action, 'post', $hidden_fields);
+        $htmlOutput .= FormDisplayTemplate::displayFormTop($form_action, 'post', $hidden_fields);
 
         if ($tabbed_form) {
             $tabs = array();
             foreach ($this->_forms as $form) {
-                $tabs[$form->name] = PMA_lang("Form_$form->name");
+                $tabs[$form->name] = Descriptions::get("Form_$form->name");
             }
-            $htmlOutput .= PMA_displayTabsTop($tabs);
+            $htmlOutput .= FormDisplayTemplate::displayTabsTop($tabs);
         }
 
         // validate only when we aren't displaying a "new server" form
@@ -326,9 +324,9 @@ class FormDisplay
         );
 
         if ($tabbed_form) {
-            $htmlOutput .= PMA_displayTabsBottom();
+            $htmlOutput .= FormDisplayTemplate::displayTabsBottom();
         }
-        $htmlOutput .= PMA_displayFormBottom();
+        $htmlOutput .= FormDisplayTemplate::displayFormBottom();
 
         // if not already done, send strings used for validation to JavaScript
         if (! $js_lang_sent) {
@@ -343,7 +341,7 @@ class FormDisplay
 
         $js[] = "$.extend(defaultValues, {\n\t"
             . implode(",\n\t", $js_default) . '})';
-        $htmlOutput .= PMA_displayJavascript($js);
+        $htmlOutput .= FormDisplayTemplate::displayJavascript($js);
 
         return $htmlOutput;
     }
@@ -371,8 +369,8 @@ class FormDisplay
         Form $form, $field, $system_path, $work_path,
         $translated_path, $show_restore_default, $userprefs_allow, array &$js_default
     ) {
-        $name = PMA_langName($system_path);
-        $description = PMA_langName($system_path, 'desc', '');
+        $name = Descriptions::get($system_path);
+        $description = Descriptions::get($system_path, 'desc');
 
         $value = $this->_configFile->get($work_path);
         $value_default = $this->_configFile->getDefault($system_path);
@@ -386,7 +384,8 @@ class FormDisplay
             'doc' => $this->getDocLink($system_path),
             'show_restore_default' => $show_restore_default,
             'userprefs_allow' => $userprefs_allow,
-            'userprefs_comment' => PMA_langName($system_path, 'cmt', ''));
+            'userprefs_comment' => Descriptions::get($system_path, 'cmt')
+        );
         if (isset($form->default[$system_path])) {
             $opts['setvalue'] = $form->default[$system_path];
         }
@@ -423,11 +422,11 @@ class FormDisplay
             // :group:end is changed to :group:end:{unique id} in Form class
             $htmlOutput = '';
             if (mb_substr($field, 7, 4) != 'end:') {
-                $htmlOutput .= PMA_displayGroupHeader(
+                $htmlOutput .= FormDisplayTemplate::displayGroupHeader(
                     mb_substr($field, 7)
                 );
             } else {
-                PMA_displayGroupFooter();
+                FormDisplayTemplate::displayGroupFooter();
             }
             return $htmlOutput;
         case 'NULL':
@@ -479,7 +478,7 @@ class FormDisplay
         }
         $js_default[] = $js_line;
 
-        return PMA_displayInput(
+        return FormDisplayTemplate::displayInput(
             $translated_path, $name, $type, $value,
             $description, $value_is_default, $opts
         );
@@ -501,12 +500,11 @@ class FormDisplay
 
         foreach ($this->_errors as $system_path => $error_list) {
             if (isset($this->_systemPaths[$system_path])) {
-                $path = $this->_systemPaths[$system_path];
-                $name = PMA_langName($path);
+                $name = Descriptions::get($this->_systemPaths[$system_path]);
             } else {
-                $name = $GLOBALS["strConfigForm_$system_path"];
+                $name = Descriptions::get('Form_' . $system_path);
             }
-            $htmlOutput .= PMA_displayErrors($name, $error_list);
+            $htmlOutput .= FormDisplayTemplate::displayErrors($name, $error_list);
         }
 
         return $htmlOutput;
@@ -616,7 +614,7 @@ class FormDisplay
                     } else {
                         $this->_errors[$form->name][] = sprintf(
                             __('Missing data for %s'),
-                            '<i>' . PMA_langName($system_path) . '</i>'
+                            '<i>' . Descriptions::get($system_path) . '</i>'
                         );
                         $result = false;
                         continue;
@@ -631,7 +629,7 @@ class FormDisplay
                         && isset($_POST[$key . '-userprefs-allow'])
                     ) {
                         unset($this->_userprefsDisallow[$system_path]);
-                    } else if (!isset($_POST[$key . '-userprefs-allow'])) {
+                    } elseif (!isset($_POST[$key . '-userprefs-allow'])) {
                         $this->_userprefsDisallow[$system_path] = true;
                     }
                 }
@@ -783,7 +781,7 @@ class FormDisplay
             return;
         }
 
-        $this->_userprefsKeys = array_flip(PMA_readUserprefsFieldNames());
+        $this->_userprefsKeys = array_flip(UserFormList::getFields());
         // read real config for user preferences display
         $userprefs_disallow = $GLOBALS['PMA_Config']->get('is_setup')
             ? $this->_configFile->get('UserprefsDisallow', array())
@@ -869,7 +867,7 @@ class FormDisplay
      *
      * @return void
      */
-    private function _fillPostArrayParameters($post_values, $key)
+    private function _fillPostArrayParameters(array $post_values, $key)
     {
         foreach ($post_values as $v) {
             $v = Util::requestString($v);

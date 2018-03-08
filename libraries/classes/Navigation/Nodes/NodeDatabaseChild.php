@@ -7,6 +7,7 @@
  */
 namespace PhpMyAdmin\Navigation\Nodes;
 
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Url;
 use PhpMyAdmin\Util;
 
@@ -34,7 +35,7 @@ abstract class NodeDatabaseChild extends Node
     public function getHtmlForControlButtons()
     {
         $ret = '';
-        $cfgRelation = PMA_getRelationsParam();
+        $cfgRelation = Relation::getRelationsParam();
         if ($cfgRelation['navwork']) {
             $db = $this->realParent()->real_name;
             $item = $this->real_name;
@@ -50,7 +51,7 @@ abstract class NodeDatabaseChild extends Node
                 . '<a href="navigation.php'
                 . Url::getCommon($params) . '"'
                 . ' class="hideNavItem ajax">'
-                . Util::getImage('hide.png', __('Hide'))
+                . Util::getImage('hide', __('Hide'))
                 . '</a></span>';
         }
 

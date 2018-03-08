@@ -5,20 +5,20 @@
  *
  * @package PhpMyAdmin-test
  */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Dbi\DbiDummy;
+use PhpMyAdmin\Tests\PmaTestCase;
 use PhpMyAdmin\Util;
-
-require_once 'test/PMATestCase.php';
 
 /**
  * Tests basic functionality of dummy dbi driver
  *
  * @package PhpMyAdmin-test
  */
-class DatabaseInterfaceTest extends PMATestCase
+class DatabaseInterfaceTest extends PmaTestCase
 {
-
     private $_dbi;
 
     /**
@@ -26,9 +26,10 @@ class DatabaseInterfaceTest extends PMATestCase
      *
      * @return void
      */
-    function setup()
+    protected function setUp()
     {
-        $extension = new PhpMyAdmin\Dbi\DbiDummy();
+        $GLOBALS['server'] = 0;
+        $extension = new DbiDummy();
         $this->_dbi = new DatabaseInterface($extension);
     }
 
@@ -43,7 +44,7 @@ class DatabaseInterfaceTest extends PMATestCase
     {
         Util::cacheUnset('mysql_cur_user');
 
-        $extension = new PhpMyAdmin\Dbi\DbiDummy();
+        $extension = new DbiDummy();
         $extension->setResult('SELECT CURRENT_USER();', $value);
 
         $dbi = new DatabaseInterface($extension);
@@ -387,7 +388,7 @@ class DatabaseInterfaceTest extends PMATestCase
     {
         Util::cacheUnset('is_amazon_rds');
 
-        $extension = new PhpMyAdmin\Dbi\DbiDummy();
+        $extension = new DbiDummy();
         $extension->setResult('SELECT @@basedir', $value);
 
         $dbi = new DatabaseInterface($extension);
@@ -441,6 +442,45 @@ class DatabaseInterfaceTest extends PMATestCase
             array('5.6.35', 50635, 5, false),
             array('10.1.22-MariaDB-', 100122, 10, false),
         );
+    }
+
+    /**
+     * Tests for DBI::setCollationl() method.
+     *
+     * @return void
+     * @test
+     */
+    public function testSetCollation()
+    {
+        $extension = $this->getMockBuilder('PhpMyAdmin\Dbi\DbiDummy')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $extension->expects($this->any())->method('escapeString')
+            ->will($this->returnArgument(1));
+
+        $extension->expects($this->exactly(4))
+            ->method('realQuery')
+            ->withConsecutive(
+                array("SET collation_connection = 'utf8_czech_ci';"),
+                array("SET collation_connection = 'utf8mb4_bin_ci';"),
+                array("SET collation_connection = 'utf8_czech_ci';"),
+                array("SET collation_connection = 'utf8_bin_ci';")
+            )
+            ->willReturnOnConsecutiveCalls(
+                true,
+                true,
+                true,
+                true
+            );
+
+        $dbi = new DatabaseInterface($extension);
+
+        $GLOBALS['charset_connection'] = 'utf8mb4';
+        $dbi->setCollation('utf8_czech_ci');
+        $dbi->setCollation('utf8mb4_bin_ci');
+        $GLOBALS['charset_connection'] = 'utf8';
+        $dbi->setCollation('utf8_czech_ci');
+        $dbi->setCollation('utf8mb4_bin_ci');
     }
 }
 

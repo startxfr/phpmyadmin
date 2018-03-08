@@ -48,14 +48,15 @@ class Sanitize
             './tbl_select.php?',
             './tbl_change.php?',
             './sql.php?',
-            # Hardcoded options in libraries/special_schema_links.lib.php
+            # Hardcoded options in libraries/special_schema_links.inc.php
             './db_events.php?',
             './db_routines.php?',
             './server_privileges.php?',
             './tbl_structure.php?',
         );
+        $is_setup = !is_null($GLOBALS['PMA_Config']) && $GLOBALS['PMA_Config']->get('is_setup');
         // Adjust path to setup script location
-        if ($GLOBALS['PMA_Config']->get('is_setup')) {
+        if ($is_setup) {
             foreach ($valid_starts as $key => $value) {
                 if (substr($value, 0, 2) === './') {
                     $valid_starts[$key] = '.' . $value;
@@ -69,7 +70,7 @@ class Sanitize
         if ($http) {
             $valid_starts[] = 'http://';
         }
-        if ($GLOBALS['PMA_Config']->get('is_setup')) {
+        if ($is_setup) {
             $valid_starts[] = '?page=form&';
             $valid_starts[] = '?page=servers&';
         }
@@ -88,7 +89,7 @@ class Sanitize
      *
      * @return string Replaced string
      */
-    public static function replaceBBLink($found)
+    public static function replaceBBLink(array $found)
     {
         /* Check for valid link */
         if (! self::checkLink($found[1])) {
@@ -125,7 +126,7 @@ class Sanitize
      *
      * @return string Replaced string
      */
-    public static function replaceDocLink($found)
+    public static function replaceDocLink(array $found)
     {
         if (count($found) >= 4) {
             $page = $found[1];
@@ -134,7 +135,7 @@ class Sanitize
             $anchor = $found[1];
             if (strncmp('faq', $anchor, 3) == 0) {
                 $page = 'faq';
-            } else if (strncmp('cfg', $anchor, 3) == 0) {
+            } elseif (strncmp('cfg', $anchor, 3) == 0) {
                 $page = 'config';
             } else {
                 /* Guess */
@@ -187,7 +188,7 @@ class Sanitize
             // used in common.inc.php:
             '[conferr]' => '<iframe src="show_config_errors.php"><a href="show_config_errors.php">show_config_errors.php</a></iframe>',
             // used in libraries/Util.php
-            '[dochelpicon]' => Util::getImage('b_help.png', __('Documentation')),
+            '[dochelpicon]' => Util::getImage('b_help', __('Documentation')),
         );
 
         $message = strtr($message, $replace_pairs);

@@ -17,7 +17,7 @@ use PhpMyAdmin\Response;
 use PhpMyAdmin\Util;
 use PhpMyAdmin\Url;
 
-require_once 'libraries/check_user_privileges.lib.php';
+require_once 'libraries/check_user_privileges.inc.php';
 
 /**
  * Displays a collapsible of database objects in the navigation frame
@@ -166,7 +166,7 @@ class NavigationTree
     {
         $retval = 0;
 
-        if (empty($GLOBALS['db'])) {
+        if (strlen($GLOBALS['db']) == 0) {
             return $retval;
         }
 
@@ -327,7 +327,7 @@ class NavigationTree
      *
      * @return Node|false The active node or false in case of failure
      */
-    private function _buildPathPart($path, $type2, $pos2, $type3, $pos3)
+    private function _buildPathPart(array $path, $type2, $pos2, $type3, $pos3)
     {
         if (empty($pos2)) {
             $pos2 = 0;
@@ -769,7 +769,7 @@ class NavigationTree
                 $groups[$key]->separator = $node->separator;
                 $groups[$key]->separator_depth = $node->separator_depth - 1;
                 $groups[$key]->icon = Util::getImage(
-                    'b_group.png'
+                    'b_group'
                 );
                 $groups[$key]->pos2 = $node->pos2;
                 $groups[$key]->pos3 = $node->pos3;
@@ -1002,7 +1002,7 @@ class NavigationTree
      *
      * @return boolean
      */
-    private function _findTreeMatch($tree, $paths)
+    private function _findTreeMatch(array $tree, array $paths)
     {
         $match = false;
         foreach ($tree as $path) {
@@ -1169,11 +1169,11 @@ class NavigationTree
 
             if (isset($node->links['text'])) {
                 $args = array();
-                foreach ($node->parents(true) as $parent) {
+                foreach ($node->parents(true) as $parent) {;
                     $args[] = urlencode($parent->real_name);
                 }
                 $link = vsprintf($node->links['text'], $args);
-                $title = empty($node->links['title']) ? '' : $node->links['title'];
+                $title = isset($node->links['title']) ? $node->links['title'] : '';
                 if ($node->type == Node::CONTAINER) {
                     $retval .= "&nbsp;<a class='hover_show_full' href='$link'>";
                     $retval .= htmlspecialchars($node->name);
@@ -1279,7 +1279,7 @@ class NavigationTree
             }
             $paths = $node->getPaths();
             if (isset($node->links['text'])) {
-                $title = empty($node->links['title']) ? '' : $node->links['title'];
+                $title = isset($node->links['title']) ? '' : $node->links['title'];
                 $retval .= '<option value="'
                     . htmlspecialchars($node->real_name) . '"'
                     . ' title="' . htmlspecialchars($title) . '"'
@@ -1424,13 +1424,13 @@ class NavigationTree
             $showText,
             __('Collapse all'),
             $showIcon,
-            's_collapseall.png',
+            's_collapseall',
             'pma_navigation_collapse'
         );
-        $syncImage = 's_unlink.png';
+        $syncImage = 's_unlink';
         $title = __('Link with main panel');
         if ($GLOBALS['cfg']['NavigationLinkWithMainPanel']) {
-            $syncImage = 's_link.png';
+            $syncImage = 's_link';
             $title = __('Unlink from main panel');
         }
         $retval .= Util::getNavigationLink(
@@ -1521,16 +1521,17 @@ class NavigationTree
     {
         if ($a->isNew) {
             return -1;
-        } else {
-            if ($b->isNew) {
-                return 1;
-            }
         }
+
+        if ($b->isNew) {
+            return 1;
+        }
+
         if ($GLOBALS['cfg']['NaturalOrder']) {
             return strnatcasecmp($a->name, $b->name);
-        } else {
-            return strcasecmp($a->name, $b->name);
         }
+
+        return strcasecmp($a->name, $b->name);
     }
 
     /**

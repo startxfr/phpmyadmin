@@ -8,12 +8,9 @@
 namespace PhpMyAdmin;
 
 use PhpMyAdmin\Bookmark;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Template;
 use PhpMyAdmin\Util;
-
-if (! defined('PHPMYADMIN')) {
-    exit;
-}
 
 /**
  * Class used to output the console
@@ -77,9 +74,12 @@ class Console
      */
     public static function getBookmarkContent()
     {
-        $cfgBookmark = Bookmark::getParams();
+        $cfgBookmark = Bookmark::getParams($GLOBALS['cfg']['Server']['user']);
         if ($cfgBookmark) {
-            $bookmarks = Bookmark::getList();
+            $bookmarks = Bookmark::getList(
+                $GLOBALS['dbi'],
+                $GLOBALS['cfg']['Server']['user']
+            );
             $count_bookmarks = count($bookmarks);
             if ($count_bookmarks > 0) {
                 $welcomeMessage = sprintf(
@@ -124,10 +124,10 @@ class Console
     public function getDisplay()
     {
         if ((! $this->_isAjax) && $this->_isEnabled) {
-            $cfgBookmark = Bookmark::getParams();
+            $cfgBookmark = Bookmark::getParams($GLOBALS['cfg']['Server']['user']);
 
-            $image = Util::getImage('console.png', __('SQL Query Console'));
-            $_sql_history = PMA_getHistory($GLOBALS['cfg']['Server']['user']);
+            $image = Util::getImage('console', __('SQL Query Console'));
+            $_sql_history = Relation::getHistory($GLOBALS['cfg']['Server']['user']);
             $bookmarkContent = static::getBookmarkContent();
 
             return Template::get('console/display')

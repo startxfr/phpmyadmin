@@ -7,6 +7,7 @@
  */
 
 use PhpMyAdmin\Core;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Response;
 use PhpMyAdmin\Transformations;
 
@@ -20,7 +21,7 @@ define('IS_TRANSFORMATION_WRAPPER', true);
  */
 require_once './libraries/common.inc.php';
 
-$cfgRelation = PMA_getRelationsParam();
+$cfgRelation = Relation::getRelationsParam();
 
 /**
  * Ensures db and table are valid, else moves to the "parent" script
@@ -64,14 +65,14 @@ if (isset($where_clause)) {
     $result = $GLOBALS['dbi']->query(
         'SELECT * FROM ' . PhpMyAdmin\Util::backquote($table)
         . ' WHERE ' . $where_clause . ';',
-        null,
+        PhpMyAdmin\DatabaseInterface::CONNECT_USER,
         PhpMyAdmin\DatabaseInterface::QUERY_STORE
     );
     $row = $GLOBALS['dbi']->fetchAssoc($result);
 } else {
     $result = $GLOBALS['dbi']->query(
         'SELECT * FROM ' . PhpMyAdmin\Util::backquote($table) . ' LIMIT 1;',
-        null,
+        PhpMyAdmin\DatabaseInterface::CONNECT_USER,
         PhpMyAdmin\DatabaseInterface::QUERY_STORE
     );
     $row = $GLOBALS['dbi']->fetchAssoc($result);

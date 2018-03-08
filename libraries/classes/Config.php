@@ -13,7 +13,9 @@ use PhpMyAdmin\Error;
 use PhpMyAdmin\LanguageManager;
 use PhpMyAdmin\ThemeManager;
 use PhpMyAdmin\Url;
+use PhpMyAdmin\UserPreferences;
 use PhpMyAdmin\Util;
+use PhpMyAdmin\Utils\HttpRequest;
 
 /**
  * Indication for error handler (see end of this file).
@@ -82,6 +84,11 @@ class Config
     var $done = false;
 
     /**
+     * @var UserPreferences
+     */
+    private $userPreferences;
+
+    /**
      * constructor
      *
      * @param string $source source to read config from
@@ -98,6 +105,8 @@ class Config
         $this->checkSystem();
 
         $this->base_settings = $this->settings;
+
+        $this->userPreferences = new UserPreferences();
     }
 
     /**
@@ -132,7 +141,7 @@ class Config
     {
         // If zlib output compression is set in the php configuration file, no
         // output buffering should be run
-        if (@ini_get('zlib.output_compression')) {
+        if (ini_get('zlib.output_compression')) {
             $this->set('OBGzip', false);
         }
 
@@ -290,12 +299,12 @@ class Config
             return;
         }
 
-        if (!@function_exists('imagecreatetruecolor')) {
+        if (!function_exists('imagecreatetruecolor')) {
             $this->set('PMA_IS_GD2', 0);
             return;
         }
 
-        if (@function_exists('gd_info')) {
+        if (function_exists('gd_info')) {
             $gd_nfo = gd_info();
             if (mb_strstr($gd_nfo["GD Version"], '2.')) {
                 $this->set('PMA_IS_GD2', 1);
@@ -601,6 +610,8 @@ class Config
             }
         }
 
+        $httpRequest = new HttpRequest();
+
         // check if commit exists in Github
         if ($commit !== false
             && isset($_SESSION['PMA_VERSION_REMOTECOMMIT_' . $hash])
@@ -608,7 +619,7 @@ class Config
             $is_remote_commit = $_SESSION['PMA_VERSION_REMOTECOMMIT_' . $hash];
         } else {
             $link = 'https://www.phpmyadmin.net/api/commit/' . $hash . '/';
-            $is_found = Util::httpRequest($link, "GET");
+            $is_found = $httpRequest->create($link, 'GET');
             switch($is_found) {
             case false:
                 $is_remote_commit = false;
@@ -636,7 +647,7 @@ class Config
                 $is_remote_branch = $_SESSION['PMA_VERSION_REMOTEBRANCH_' . $hash];
             } else {
                 $link = 'https://www.phpmyadmin.net/api/tree/' . $branch . '/';
-                $is_found = Util::httpRequest($link, "GET", true);
+                $is_found = $httpRequest->create($link, 'GET', true);
                 switch($is_found) {
                 case true:
                     $is_remote_branch = true;
@@ -755,15 +766,7 @@ class Config
             $this->setSource($source);
         }
 
-        /**
-         * We check and set the font size at this point, to make the font size
-         * selector work also for users without a config.inc.php
-         */
-        $this->checkFontsize();
-
         if (! $this->checkConfigSource()) {
-            // even if no config file, set collation_connection
-            $this->checkCollationConnection();
             return false;
         }
 
@@ -837,51 +840,21 @@ class Config
 
         $this->settings = array_replace_recursive($this->settings, $cfg);
 
-        // Handling of the collation must be done after merging of $cfg
-        // (from config.inc.php) so that $cfg['DefaultConnectionCollation']
-        // can have an effect.
-        $this->checkCollationConnection();
-
         return true;
     }
 
     /**
-     * Saves the connection collation
-     *
-     * @param array $config_data configuration data from user preferences
+     * Sets the connection collation
      *
      * @return void
      */
-    private function _saveConnectionCollation($config_data)
+    private function _setConnectionCollation()
     {
-        // just to shorten the lines
-        $collation = 'collation_connection';
-        if (isset($GLOBALS[$collation])
-            && (isset($_COOKIE['pma_collation_connection'])
-            || isset($_POST[$collation]))
+        $collation_connection = $this->get('DefaultConnectionCollation');
+        if (! empty($collation_connection)
+            && $collation_connection != $GLOBALS['collation_connection']
         ) {
-            if ((! isset($config_data[$collation])
-                && $GLOBALS[$collation] != 'utf8_general_ci')
-                || isset($config_data[$collation])
-                && $GLOBALS[$collation] != $config_data[$collation]
-            ) {
-                $this->setUserValue(
-                    null,
-                    $collation,
-                    $GLOBALS[$collation],
-                    'utf8_general_ci'
-                );
-            }
-        } else {
-            // read collation from settings
-            if (isset($config_data[$collation])) {
-                $GLOBALS[$collation]
-                    = $config_data[$collation];
-                $this->setCookie(
-                    'pma_collation_connection',
-                    $GLOBALS[$collation]
-                );
-            }
+            $GLOBALS['dbi']->setCollation($collation_connection);
         }
     }
 
@@ -907,11 +880,9 @@ class Config
             if (! isset($_SESSION['cache'][$cache_key]['userprefs'])
                 || $_SESSION['cache'][$cache_key]['config_mtime'] < $config_mtime
             ) {
-                // load required libraries
-                include_once './libraries/user_preferences.lib.php';
-                $prefs = PMA_loadUserprefs();
+                $prefs = $this->userPreferences->load();
                 $_SESSION['cache'][$cache_key]['userprefs']
-                    = PMA_applyUserprefs($prefs['config_data']);
+                    = $this->userPreferences->apply($prefs['config_data']);
                 $_SESSION['cache'][$cache_key]['userprefs_mtime'] = $prefs['mtime'];
                 $_SESSION['cache'][$cache_key]['userprefs_type'] = $prefs['type'];
                 $_SESSION['cache'][$cache_key]['config_mtime'] = $config_mtime;
@@ -933,11 +904,6 @@ class Config
             $_SESSION['cache'][$cache_key]['userprefs_mtime']
         );
 
-        // backup some settings
-        $org_fontsize = '';
-        if (isset($this->settings['fontsize'])) {
-            $org_fontsize = $this->settings['fontsize'];
-        }
         // load config array
         $this->settings = array_replace_recursive($this->settings, $config_data);
         $GLOBALS['cfg'] = array_replace_recursive($GLOBALS['cfg'], $config_data);
@@ -976,15 +942,6 @@ class Config
             }
         }
 
-        // save font size
-        if ((! isset($config_data['fontsize'])
-            && $org_fontsize != '82%')
-            || isset($config_data['fontsize'])
-            && $org_fontsize != $config_data['fontsize']
-        ) {
-            $this->setUserValue(null, 'fontsize', $org_fontsize, '82%');
-        }
-
         // save language
         if (isset($_COOKIE['pma_lang']) || isset($_POST['lang'])) {
             if ((! isset($config_data['lang'])
@@ -1007,8 +964,8 @@ class Config
             }
         }
 
-        // save connection collation
-        $this->_saveConnectionCollation($config_data);
+        // set connection collation
+        $this->_setConnectionCollation();
     }
 
     /**
@@ -1024,19 +981,19 @@ class Config
      * @param mixed  $new_cfg_value new value
      * @param mixed  $default_value default value
      *
-     * @return void
+     * @return true|PhpMyAdmin\Message
      */
     public function setUserValue($cookie_name, $cfg_path, $new_cfg_value,
         $default_value = null
     ) {
+        $result = true;
         // use permanent user preferences if possible
         $prefs_type = $this->get('user_preferences');
         if ($prefs_type) {
-            include_once './libraries/user_preferences.lib.php';
             if ($default_value === null) {
                 $default_value = Core::arrayRead($cfg_path, $this->default);
             }
-            PMA_persistOption($cfg_path, $new_cfg_value, $default_value);
+            $result = $this->userPreferences->persistOption($cfg_path, $new_cfg_value, $default_value);
         }
         if ($prefs_type != 'db' && $cookie_name) {
             // fall back to cookies
@@ -1047,6 +1004,7 @@ class Config
         }
         Core::arrayWrite($cfg_path, $GLOBALS['cfg'], $new_cfg_value);
         Core::arrayWrite($cfg_path, $this->settings, $new_cfg_value);
+        return $result;
     }
 
     /**
@@ -1066,7 +1024,7 @@ class Config
             if ($cookie_exists) {
                 $this->removeCookie($cookie_name);
             }
-        } else if ($cookie_exists) {
+        } elseif ($cookie_exists) {
             return $_COOKIE[$cookie_name];
         }
         // return value from $cfg array
@@ -1232,18 +1190,14 @@ class Config
     /**
      * returns a unique value to force a CSS reload if either the config
      * or the theme changes
-     * must also check the pma_fontsize cookie in case there is no
-     * config file
      *
      * @return int Summary of unix timestamps and fontsize,
      * to be unique on theme parameters change
      */
     public function getThemeUniqueValue()
     {
-        if (null !== $this->get('fontsize')) {
-            $fontsize = intval($this->get('fontsize'));
-        } elseif (isset($_COOKIE['pma_fontsize'])) {
-            $fontsize = intval($_COOKIE['pma_fontsize']);
+        if (null !== $this->get('FontSize')) {
+            $fontsize = intval($this->get('FontSize'));
         } else {
             $fontsize = 0;
         }
@@ -1254,61 +1208,6 @@ class Config
             $this->get('user_preferences_mtime') +
             $GLOBALS['PMA_Theme']->mtime_info +
             $GLOBALS['PMA_Theme']->filesize_info);
-    }
-
-    /**
-     * Sets collation_connection based on user preference. First is checked
-     * value from request, then cookies with fallback to default.
-     *
-     * After setting it here, cookie is set in common.inc.php to persist
-     * the selection.
-     *
-     * @todo check validity of collation string
-     *
-     * @return void
-     */
-    public function checkCollationConnection()
-    {
-        if (! empty($_REQUEST['collation_connection'])) {
-            $collation = htmlspecialchars(
-                strip_tags($_REQUEST['collation_connection'])
-            );
-        } elseif (! empty($_COOKIE['pma_collation_connection'])) {
-            $collation = htmlspecialchars(
-                strip_tags($_COOKIE['pma_collation_connection'])
-            );
-        } else {
-            $collation = $this->get('DefaultConnectionCollation');
-        }
-        $this->set('collation_connection', $collation);
-    }
-
-    /**
-     * checks for font size configuration, and sets font size as requested by user
-     *
-     * @return void
-     */
-    public function checkFontsize()
-    {
-        $new_fontsize = '';
-
-        if (isset($_GET['set_fontsize'])) {
-            $new_fontsize = $_GET['set_fontsize'];
-        } elseif (isset($_POST['set_fontsize'])) {
-            $new_fontsize = $_POST['set_fontsize'];
-        } elseif (isset($_COOKIE['pma_fontsize'])) {
-            $new_fontsize = $_COOKIE['pma_fontsize'];
-        }
-
-        if (preg_match('/^[0-9.]+(px|em|pt|\%)$/', $new_fontsize)) {
-            $this->set('fontsize', $new_fontsize);
-        } elseif (! $this->get('fontsize')) {
-            // 80% would correspond to the default browser font size
-            // of 16, but use 82% to help read the monoface font
-            $this->set('fontsize', '82%');
-        }
-
-        $this->setCookie('pma_fontsize', $this->get('fontsize'), '82%');
     }
 
     /**
@@ -1453,7 +1352,6 @@ class Config
         $GLOBALS['cfg']             = $this->settings;
         $GLOBALS['default_server']  = $this->default_server;
         unset($this->default_server);
-        $GLOBALS['collation_connection'] = $this->get('collation_connection');
         $GLOBALS['is_upload']       = $this->get('enable_upload');
         $GLOBALS['max_upload_size'] = $this->get('max_upload_size');
         $GLOBALS['is_https']        = $this->get('is_https');
@@ -1546,14 +1444,10 @@ class Config
      */
     protected static function getFontsizeSelection()
     {
-        $current_size = $GLOBALS['PMA_Config']->get('fontsize');
+        $current_size = $GLOBALS['PMA_Config']->get('FontSize');
         // for the case when there is no config file (this is supported)
         if (empty($current_size)) {
-            if (isset($_COOKIE['pma_fontsize'])) {
-                $current_size = htmlspecialchars($_COOKIE['pma_fontsize']);
-            } else {
-                $current_size = '82%';
-            }
+            $current_size = '82%';
         }
         $options = Config::getFontsizeOptions($current_size);
 
@@ -1581,7 +1475,7 @@ class Config
     public static function getFontsizeForm()
     {
         return '<form name="form_fontsize_selection" id="form_fontsize_selection"'
-            . ' method="get" action="index.php" class="disableAjax">' . "\n"
+            . ' method="post" action="index.php" class="disableAjax">' . "\n"
             . Url::getHiddenInputs() . "\n"
             . Config::getFontsizeSelection() . "\n"
             . '</form>';
@@ -1756,19 +1650,26 @@ class Config
      */
     public function getTempDir($name)
     {
+        static $temp_dir = array();
+
+        if (isset($temp_dir[$name]) && !defined('TESTSUITE')) {
+            return $temp_dir[$name];
+        }
+
         $path = $this->get('TempDir');
         if (empty($path)) {
-            return null;
+            $path = null;
+        } else {
+            $path .= '/' . $name;
+            if (! @is_dir($path)) {
+                @mkdir($path, 0770, true);
+            }
+            if (! @is_dir($path) || ! @is_writable($path)) {
+                $path = null;
+            }
         }
 
-        $path .= '/' . $name;
-        if (! @is_dir($path)) {
-            @mkdir($path, 0770, true);
-        }
-        if (! @is_dir($path) || ! @is_writable($path)) {
-            return null;
-        }
-
+        $temp_dir[$name] = $path;
         return $path;
     }
 
@@ -1794,6 +1695,103 @@ class Config
         }
 
         return null;
+    }
+
+    /**
+     * Selects server based on request parameters.
+     *
+     * @return integer
+     */
+    public function selectServer() {
+        $server = 0;
+        $request = empty($_REQUEST['server']) ? 0 : $_REQUEST['server'];
+
+        /**
+         * Lookup server by name
+         * (see FAQ 4.8)
+         */
+        if (! is_numeric($request)) {
+            foreach ($this->settings['Servers'] as $i => $server) {
+                $verboseToLower = mb_strtolower($server['verbose']);
+                $serverToLower = mb_strtolower($request);
+                if ($server['host'] == $request
+                    || $server['verbose'] == $request
+                    || $verboseToLower == $serverToLower
+                    || md5($verboseToLower) === $serverToLower
+                ) {
+                    $request = $i;
+                    break;
+                }
+            }
+            if (is_string($request)) {
+                $request = 0;
+            }
+        }
+
+        /**
+         * If no server is selected, make sure that $this->settings['Server'] is empty (so
+         * that nothing will work), and skip server authentication.
+         * We do NOT exit here, but continue on without logging into any server.
+         * This way, the welcome page will still come up (with no server info) and
+         * present a choice of servers in the case that there are multiple servers
+         * and '$this->settings['ServerDefault'] = 0' is set.
+         */
+
+        if (is_numeric($request) && ! empty($request) && ! empty($this->settings['Servers'][$request])) {
+            $server = $request;
+            $this->settings['Server'] = $this->settings['Servers'][$server];
+        } else {
+            if (!empty($this->settings['Servers'][$this->settings['ServerDefault']])) {
+                $server = $this->settings['ServerDefault'];
+                $this->settings['Server'] = $this->settings['Servers'][$server];
+            } else {
+                $server = 0;
+                $this->settings['Server'] = array();
+            }
+        }
+
+        return $server;
+    }
+
+    /**
+     * Checks whether Servers configuration is valid and possibly apply fixups.
+     *
+     * @return void
+     */
+    public function checkServers() {
+        // Do we have some server?
+        if (! isset($this->settings['Servers']) || count($this->settings['Servers']) == 0) {
+            // No server => create one with defaults
+            $this->settings['Servers'] = array(1 => $this->default_server);
+        } else {
+            // We have server(s) => apply default configuration
+            $new_servers = array();
+
+            foreach ($this->settings['Servers'] as $server_index => $each_server) {
+
+                // Detect wrong configuration
+                if (!is_int($server_index) || $server_index < 1) {
+                    trigger_error(
+                        sprintf(__('Invalid server index: %s'), $server_index),
+                        E_USER_ERROR
+                    );
+                }
+
+                $each_server = array_merge($this->default_server, $each_server);
+
+                // Final solution to bug #582890
+                // If we are using a socket connection
+                // and there is nothing in the verbose server name
+                // or the host field, then generate a name for the server
+                // in the form of "Server 2", localized of course!
+                if (empty($each_server['host']) && empty($each_server['verbose'])) {
+                    $each_server['verbose'] = sprintf(__('Server %d'), $server_index);
+                }
+
+                $new_servers[$server_index] = $each_server;
+            }
+            $this->settings['Servers'] = $new_servers;
+        }
     }
 }
 

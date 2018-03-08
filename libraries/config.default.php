@@ -554,7 +554,7 @@ $cfg['Servers'][$i]['AllowDeny']['rules'] = array();
 /**
  * Disable use of INFORMATION_SCHEMA.
  *
- * @see https://sourceforge.net/p/phpmyadmin/bugs/2606/
+ * @see https://github.com/phpmyadmin/phpmyadmin/issues/8970
  * @see https://bugs.mysql.com/19588
  * @global boolean $cfg['Servers'][$i]['DisableIS']
  */
@@ -1044,6 +1044,13 @@ $cfg['NavigationTreeShowProcedures'] = true;
  * @global boolean $cfg['NavigationTreeShowEvents']
  */
 $cfg['NavigationTreeShowEvents'] = true;
+
+/**
+ * Width of navigation panel
+ *
+ * @global integer $cfg['NavigationWidth']
+ */
+$cfg['NavigationWidth'] = 240;
 
 /*******************************************************************************
  * In the main panel, at startup...
@@ -2596,7 +2603,9 @@ $cfg['AvailableCharsets'] = array(
     'euc-jp',
     'ks_c_5601-1987',
     'tis-620',
-    'SHIFT_JIS'
+    'SHIFT_JIS',
+    'SJIS',
+    'SJIS-win',
 );
 
 
@@ -2761,7 +2770,7 @@ $cfg['BrowseMIME'] = true;
  *
  * @global integer $cfg['MaxExactCount']
  */
-$cfg['MaxExactCount'] = 500000;
+$cfg['MaxExactCount'] = 50000;
 
 /**
  * Zero means that no row count is done for views; see the doc
@@ -2857,6 +2866,11 @@ $cfg['ThemeDefault'] = 'pmahomme';
  */
 $cfg['ThemePerServer'] = false;
 
+
+/**
+ * Font size to use by default
+ */
+$cfg['FontSize'] = '82%';
 
 /*******************************************************************************
  *
@@ -3047,7 +3061,7 @@ $cfg['DBG']['sql'] = false;
 /**
  * Log executed queries and their execution times to syslog
  *
- * @global boolean $cfg['DBG']['sql']
+ * @global boolean $cfg['DBG']['sqllog']
  */
 $cfg['DBG']['sqllog'] = false;
 
@@ -3057,6 +3071,13 @@ $cfg['DBG']['sqllog'] = false;
  * @global boolean $cfg['DBG']['demo']
  */
 $cfg['DBG']['demo'] = false;
+
+/**
+ * Enable Simple two-factor authentication
+ *
+ * @global boolean $cfg['DBG']['simple2fa']
+ */
+$cfg['DBG']['simple2fa'] = false;
 
 
 /*******************************************************************************
@@ -3105,6 +3126,24 @@ $cfg['MysqlMinVersion'] = array(
  * @global array $cfg['DisableShortcutKeys']
  */
 $cfg['DisableShortcutKeys'] = false;
+
+/**
+ * Console configuration
+ *
+ * This is mostly meant for user preferences.
+ */
+$cfg['Console'] = [
+    'StartHistory' => false,
+    'AlwaysExpand' => false,
+    'CurrentQuery' => true,
+    'EnterExecutes' => false,
+    'DarkTheme' => false,
+    'Mode' => 'info',
+    'Height' => 92,
+    'GroupQueries' => false,
+    'OrderBy' => 'exec',
+    'Order' => 'asc',
+];
 
 
 /*******************************************************************************

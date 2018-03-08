@@ -5,15 +5,13 @@
  *
  * @package PhpMyAdmin-test
  */
+namespace PhpMyAdmin\Tests;
 
 use PhpMyAdmin\Config;
 use PhpMyAdmin\Core;
 use PhpMyAdmin\Header;
-use PhpMyAdmin\Theme;
-
-require_once 'libraries/database_interface.inc.php';
-require_once 'libraries/relation.lib.php';
-require_once 'test/PMATestCase.php';
+use PhpMyAdmin\Tests\PmaTestCase;
+use ReflectionMethod;
 
 /**
  * Test for PhpMyAdmin\Header class
@@ -21,7 +19,7 @@ require_once 'test/PMATestCase.php';
  * @package PhpMyAdmin-test
  * @group medium
  */
-class HeaderTest extends PMATestCase
+class HeaderTest extends PmaTestCase
 {
     /**
      * Configures global environment.

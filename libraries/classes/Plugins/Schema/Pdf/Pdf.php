@@ -8,6 +8,7 @@
 namespace PhpMyAdmin\Plugins\Schema\Pdf;
 
 use PhpMyAdmin\Pdf as PdfLib;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Util;
 
 /**
@@ -241,7 +242,7 @@ class Pdf extends PdfLib
                     . Util::backquote($GLOBALS['cfgRelation']['pdf_pages'])
                     . ' WHERE db_name = \'' . $GLOBALS['dbi']->escapeString($this->_db)
                     . '\' AND page_nr = \'' . $this->_pageNumber . '\'';
-                $test_rs = PMA_queryAsControlUser($test_query);
+                $test_rs = Relation::queryAsControlUser($test_query);
                 $pages = @$GLOBALS['dbi']->fetchAssoc($test_rs);
                 $pg_name = ucfirst($pages['page_descr']);
             }
@@ -275,7 +276,7 @@ class Pdf extends PdfLib
      *
      * @return void
      */
-    public function setWidths($w)
+    public function setWidths(array $w)
     {
         // column widths
         $this->widths = $w;
@@ -289,7 +290,7 @@ class Pdf extends PdfLib
      *
      * @return void
      */
-    public function row($data, $links)
+    public function row(array $data, array $links)
     {
         // line height
         $nb = 0;

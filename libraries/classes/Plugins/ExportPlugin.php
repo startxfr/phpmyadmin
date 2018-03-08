@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins;
 
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
+use PhpMyAdmin\Relation;
 
 /**
  * Provides a common interface that will have to be implemented by all of the
@@ -93,7 +94,7 @@ abstract class ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     );
 
     /**
@@ -109,7 +110,7 @@ abstract class ExportPlugin
      *
      * @return bool Whether it succeeded
      */
-    public function exportRoutines($db, $aliases = array())
+    public function exportRoutines($db, array $aliases = array())
     {
         ;
     }
@@ -159,7 +160,7 @@ abstract class ExportPlugin
         $comments = false,
         $mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         ;
     }
@@ -176,7 +177,7 @@ abstract class ExportPlugin
     public function exportMetadata(
         $db,
         $tables,
-        $metadataTypes
+        array $metadataTypes
     ) {
         ;
     }
@@ -277,7 +278,7 @@ abstract class ExportPlugin
      *
      * @return string alias of the identifier if found or ''
      */
-    public function getAlias($aliases, $id, $type = 'dbtblcol', $db = '', $tbl = '')
+    public function getAlias(array $aliases, $id, $type = 'dbtblcol', $db = '', $tbl = '')
     {
         if (!empty($db) && isset($aliases[$db])) {
             $aliases = array(
@@ -343,13 +344,13 @@ abstract class ExportPlugin
      * @return string the Relation string
      */
     public function getRelationString(
-        $res_rel,
+        array $res_rel,
         $field_name,
         $db,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $relation = '';
-        $foreigner = PMA_searchColumnInForeigners($res_rel, $field_name);
+        $foreigner = Relation::searchColumnInForeigners($res_rel, $field_name);
         if ($foreigner) {
             $ftable = $foreigner['foreign_table'];
             $ffield = $foreigner['foreign_field'];

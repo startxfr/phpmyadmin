@@ -9,6 +9,7 @@
 namespace PhpMyAdmin\Plugins\Export;
 
 use PhpMyAdmin\DatabaseInterface;
+use PhpMyAdmin\Export;
 use PhpMyAdmin\Plugins\ExportPlugin;
 use PhpMyAdmin\Properties\Plugins\ExportPluginProperties;
 use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyMainGroup;
@@ -16,6 +17,7 @@ use PhpMyAdmin\Properties\Options\Groups\OptionsPropertyRootGroup;
 use PhpMyAdmin\Properties\Options\Items\BoolPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\RadioPropertyItem;
 use PhpMyAdmin\Properties\Options\Items\TextPropertyItem;
+use PhpMyAdmin\Relation;
 use PhpMyAdmin\Transformations;
 use PhpMyAdmin\Util;
 
@@ -130,7 +132,7 @@ class ExportTexytext extends ExportPlugin
             $db_alias = $db;
         }
 
-        return PMA_exportOutputHandler(
+        return Export::outputHandler(
             '===' . __('Database') . ' ' . $db_alias . "\n\n"
         );
     }
@@ -179,7 +181,7 @@ class ExportTexytext extends ExportPlugin
         $crlf,
         $error_url,
         $sql_query,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $what;
 
@@ -187,7 +189,7 @@ class ExportTexytext extends ExportPlugin
         $table_alias = $table;
         $this->initAlias($aliases, $db_alias, $table_alias);
 
-        if (!PMA_exportOutputHandler(
+        if (!Export::outputHandler(
             '== ' . __('Dumping data for table') . ' ' . $table_alias . "\n\n"
         )
         ) {
@@ -197,7 +199,7 @@ class ExportTexytext extends ExportPlugin
         // Gets the data from the database
         $result = $GLOBALS['dbi']->query(
             $sql_query,
-            null,
+            DatabaseInterface::CONNECT_USER,
             DatabaseInterface::QUERY_UNBUFFERED
         );
         $fields_cnt = $GLOBALS['dbi']->numFields($result);
@@ -214,7 +216,7 @@ class ExportTexytext extends ExportPlugin
                     . htmlspecialchars(stripslashes($col_as));
             } // end for
             $text_output .= "\n|------\n";
-            if (!PMA_exportOutputHandler($text_output)) {
+            if (!Export::outputHandler($text_output)) {
                 return false;
             }
         } // end if
@@ -238,7 +240,7 @@ class ExportTexytext extends ExportPlugin
                     );
             } // end for
             $text_output .= "\n";
-            if (!PMA_exportOutputHandler($text_output)) {
+            if (!Export::outputHandler($text_output)) {
                 return false;
             }
         } // end while
@@ -339,7 +341,7 @@ class ExportTexytext extends ExportPlugin
         $show_dates = false,
         $add_semicolon = true,
         $view = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         global $cfgRelation;
 
@@ -362,7 +364,7 @@ class ExportTexytext extends ExportPlugin
         $GLOBALS['dbi']->selectDb($db);
 
         // Check if we can use Relations
-        list($res_rel, $have_rel) = PMA_getRelationsAndStatus(
+        list($res_rel, $have_rel) = Relation::getRelationsAndStatus(
             $do_relation && !empty($cfgRelation['relation']),
             $db,
             $table
@@ -382,7 +384,7 @@ class ExportTexytext extends ExportPlugin
         }
         if ($do_comments) {
             $text_output .= '|' . __('Comments');
-            $comments = PMA_getComments($db, $table);
+            $comments = Relation::getComments($db, $table);
         }
         if ($do_mime && $cfgRelation['mimework']) {
             $text_output .= '|' . htmlspecialchars('MIME');
@@ -502,7 +504,7 @@ class ExportTexytext extends ExportPlugin
         $do_comments = false,
         $do_mime = false,
         $dates = false,
-        $aliases = array()
+        array $aliases = array()
     ) {
         $db_alias = $db;
         $table_alias = $table;
@@ -558,7 +560,7 @@ class ExportTexytext extends ExportPlugin
             $dump .= $this->getTableDefStandIn($db, $table, $crlf, $aliases);
         } // end switch
 
-        return PMA_exportOutputHandler($dump);
+        return Export::outputHandler($dump);
     }
 
     /**

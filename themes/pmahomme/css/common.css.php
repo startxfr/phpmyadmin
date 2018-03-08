@@ -8,12 +8,11 @@
  */
 
 // unplanned execution path
-if (! defined('PMA_MINIMUM_COMMON') && ! defined('TESTSUITE')) {
+if (! defined('PHPMYADMIN') && ! defined('TESTSUITE')) {
     exit();
 }
 ?>
 /******************************************************************************/
-
 /* general tags */
 html {
     font-size: <?php echo $theme->getFontSize(); ?>
@@ -55,6 +54,10 @@ body#loginform {
 
 .all85{
     width: 85%;
+}
+
+.auth_config_tbl{
+    margin: 0 auto;
 }
 
 <?php if (! empty($GLOBALS['cfg']['FontFamilyFixed'])) : ?>
@@ -382,8 +385,7 @@ fieldset legend {
     margin: 1.5em;
 }
 
-/* buttons in some browsers (eg. Konqueror) are block elements,
-   this breaks design */
+/* buttons in some browsers (eg. Konqueror) are block elements, this breaks design */
 button {
     display: inline;
 }
@@ -398,6 +400,10 @@ table td {
 }
 
 /* 3.4 */
+.datatable{
+    table-layout: fixed;
+}
+
 table {
     border-collapse: collapse;
 }
@@ -552,13 +558,17 @@ button.mult_submit {
 
 /* odd items 1,3,5,7,... */
 table tbody:first-of-type tr:nth-child(odd),
-table tbody:first-of-type tr:nth-child(odd) th {
+table tbody:first-of-type tr:nth-child(odd) th,
+#table_index tbody:nth-of-type(odd) tr,
+#table_index tbody:nth-of-type(odd) th {
     background: #fff;
 }
 
 /* even items 2,4,6,8,... */
 table tbody:first-of-type tr:nth-child(even),
-table tbody:first-of-type tr:nth-child(even) th {
+table tbody:first-of-type tr:nth-child(even) th,
+#table_index tbody:nth-of-type(even) tr,
+#table_index tbody:nth-of-type(even) th {
     background: #DFDFDF;
 }
 
@@ -585,6 +595,8 @@ table tbody:first-of-type tr:not(.nopointer):hover th,
 }
 
 /* hovered table rows */
+#table_index tbody:hover tr,
+#table_index tbody:hover th,
 table tr.hover:not(.nopointer) th {
     <?php echo $theme->getCssGradient('ced6df', 'b6c6d7'); ?>
     color: <?php echo $GLOBALS['cfg']['BrowsePointerColor']; ?>;
@@ -690,6 +702,7 @@ img.lightbulb {
 
 /* no extra space in table cells */
 td .icon {
+    image-rendering: pixelated;
     margin: 0;
 }
 
@@ -906,6 +919,36 @@ form.login select {
 
 .column_attribute {
     font-size: 70%;
+}
+
+.cfg_dbg_demo{
+    margin: 0.5em 1em 0.5em 1em;
+}
+
+.central_columns_navigation{
+    padding:1.5% 0em !important;
+}
+
+.central_columns_add_column{
+    display:inline-block;
+    margin-left:1%;
+    max-width:50%
+}
+
+.message_errors_found{
+    margin-top: 20px;
+}
+
+.font_weight_bold{
+    font-weight: bold;
+}
+
+.color_gray{
+    color: gray;
+}
+
+.pma_sliding_message{
+    display: inline-block;
 }
 
 /******************************************************************************/
@@ -1462,19 +1505,14 @@ div#queryAnalyzerDialog table.queryNums {
     padding: 0.5em;
     min-height: 18px;
 }
-#serverVariables .var-action {
-    width: 15%;
-}
 #serverVariables .var-name {
     font-weight: bold;
-    width: 65%;
 }
 #serverVariables .var-name.session {
     font-weight: normal;
     font-style: italic;
 }
 #serverVariables .var-value {
-    width: 20%;
     float: <?php echo $right; ?>;
     text-align: <?php echo $right; ?>;
 }
@@ -1581,6 +1619,7 @@ div#profilingchart {
     font-size: 1.7em;
 }
 #sectionlinks {
+    margin-bottom: 15px;
     padding: 16px;
     background: #f3f3f3;
     border: 1px solid #aaa;
@@ -1791,6 +1830,7 @@ div.sqlvalidate {
 
 .result_query div.sqlOuter {
     background: <?php echo $GLOBALS['cfg']['BgOne']; ?>;
+    text-align: <?php echo $left; ?>;
 }
 
 .result_query .success, .result_query .error {
@@ -2005,6 +2045,10 @@ select.invalid_value,
     vertical-align: middle;
 }
 
+.exportoptions h2 {
+    word-wrap: break-word;
+}
+
 .exportoptions h3,
 .importoptions h3 {
     border-bottom: 1px #999 solid;
@@ -2104,7 +2148,12 @@ select#table_select {
 .export_sub_options li {
     margin-bottom: 0;
 }
-
+#export_refresh_form {
+    margin-left: 20px;
+}
+#export_back_button {
+    display: inline;
+}
 #output_quick_export {
     display: none;
 }
@@ -2172,9 +2221,9 @@ input#input_import_file {
 /**
  * Indexes
  */
-#index_frm .index_info input,
+#index_frm .index_info input[type="text"],
 #index_frm .index_info select {
-    width: 14em;
+    width: 100%;
     margin: 0;
     box-sizing: border-box;
     -ms-box-sizing: border-box;
@@ -2219,7 +2268,7 @@ table#index_columns {
 
 table#index_columns select {
     width: 85%;
-    float: right;
+    float: <?php echo $left; ?>;
 }
 
 #move_columns_dialog div {
@@ -2528,9 +2577,10 @@ fieldset .disabled-field td {
 .toggleButton .container {
     position: absolute;
 }
-.toggleButton .container td {
+.toggleButton .container td,
+.toggleButton .container tr {
     background-image: none;
-    background: none;
+    background: none !important;
 }
 .toggleButton .toggleOn {
     color: #fff;
@@ -2586,6 +2636,13 @@ fieldset .disabled-field td {
     border: 1px solid #aaa;
     float: <?php echo $right; ?>;
     overflow: hidden;
+    width: 450px;
+    height: 300px;
+}
+
+#openlayersmap{
+    width: 450px;
+    height: 300px;
 }
 
 .placeholderDrag {
@@ -2927,6 +2984,10 @@ body .ui-widget {
 
 .ui-dialog fieldset legend a {
     color: #235A81;
+}
+
+.ui-draggable {
+    z-index: 801;
 }
 
 /* over-riding jqplot-yaxis class */
@@ -3523,6 +3584,9 @@ body .ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset {
 }
 /* end of styles for jQuery-ui to support rtl languages */
 
+.responsivetable {
+    overflow-x: auto;
+}
 @media only screen and (max-width: 768px) {
     /* For mobile phones: */
     #main_pane_left {
@@ -3593,6 +3657,10 @@ body .ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset {
         margin-top: 60px;
     }
 
+    #table_columns .tablesorter {
+        min-width: 100%;
+    }
+
     .doubleFieldset fieldset {
         width: 98%;
     }
@@ -3606,4 +3674,9 @@ body .ui-dialog .ui-dialog-buttonpane .ui-dialog-buttonset {
         margin: 1%;
         width: 95% !important;
     }
+}
+/* templates/database/designer */
+/* side menu */
+#name-panel {
+    overflow:hidden;
 }
